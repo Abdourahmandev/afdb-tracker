@@ -35,6 +35,19 @@ def init_db() -> None:
             email_sent   BOOLEAN
         )
     """)
+    con.execute("""
+        CREATE TABLE IF NOT EXISTS run_history (
+            run_at       TIMESTAMP,
+            trigger      VARCHAR,
+            jobs_in_db   INTEGER,
+            new_jobs     INTEGER,
+            evaluated    INTEGER,
+            emails_sent  INTEGER,
+            duration_s   DOUBLE,
+            status       VARCHAR,
+            notes        VARCHAR
+        )
+    """)
     con.close()
 
 
@@ -123,3 +136,61 @@ def insert_evaluation(
         [job_id, score, summary, datetime.utcnow(), email_sent],
     )
     con.close()
+
+
+def insert_run_history(
+    trigger: str,
+    jobs_in_db: int,
+    new_jobs: int,
+    evaluated: int,
+    emails_sent: int,
+    duration_s: float,
+    status: str,
+    notes: str = "",
+) -> None:
+    """Log a completed pipeline run."""
+    con = _connect()
+    con.execute(
+        """
+        INSERT INTO run_history
+            (run_at, trigger, jobs_in_db, new_jobs, evaluated, emails_sent, duration_s, status, notes)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        [datetime.utcnow(), trigger, jobs_in_db, new_jobs, evaluated, emails_sent,
+         duration_s, status, notes],
+    )
+    con.close()
+
+
+def get_run_history(limit: int = 20) -> list[dict]:
+    """Return the most recent pipeline runs, newest first."""
+    con = _connect()
+    rows = con.execute("""
+        SELECT run_at, trigger, jobs_in_db, new_jobs, evaluated,
+               emails_sent, duration_s, status, notes
+        FROM run_history
+        ORDER BY run_at DESC
+        LIMIT ?
+    """, [limit]).fetchall()
+    con.close()
+    keys = ["run_at", "trigger", "jobs_in_db", "new_jobs", "evaluated",
+            "emails_sent", "duration_s", "status", "notes"]
+    return [dict(zip(keys, row)) for row in rows]
+
+
+def get_all_jobs_with_evaluations() -> list[dict]:
+    """Return all jobs joined with evaluations, sorted by score DESC (unevaluated last)."""
+    con = _connect()
+    rows = con.execute("""
+        SELECT j.job_id, j.title, j.location, j.contract_type,
+               j.deadline, j.description_raw, j.url, j.scraped_at,
+               e.score, e.summary, e.evaluated_at, e.email_sent
+        FROM jobs j
+        LEFT JOIN evaluations e ON j.job_id = e.job_id
+        ORDER BY COALESCE(e.score, -1) DESC
+    """).fetchall()
+    con.close()
+    keys = ["job_id", "title", "location", "contract_type", "deadline",
+            "description_raw", "url", "scraped_at", "score", "summary",
+            "evaluated_at", "email_sent"]
+    return [dict(zip(keys, row)) for row in rows]

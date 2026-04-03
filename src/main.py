@@ -20,9 +20,12 @@ from dotenv import load_dotenv
 # Load .env from the project root (one level up from src/) — no-op in Docker
 load_dotenv(Path(__file__).parent.parent / ".env")
 
-from db import init_db, insert_evaluation, insert_job, get_unevaluated_jobs, get_unemailed_jobs, mark_email_sent
+from db import (init_db, insert_evaluation, insert_job,
+                get_unevaluated_jobs, get_unemailed_jobs, mark_email_sent,
+                insert_run_history)
 from evaluator import evaluate_job
 from notifier import send_alert
+from report_generator import generate_report
 from scraper import scrape_job_listings
 
 logging.basicConfig(
@@ -64,7 +67,9 @@ def run_pipeline() -> None:
     logger.info("Known job IDs in DB: %d", len(known_ids))
 
     new_jobs = scrape_job_listings(known_job_ids=known_ids)
-    logger.info("New jobs scraped this run: %d", len(new_jobs))
+    new_jobs_count = len(new_jobs)
+    total_db_jobs  = len(known_ids) + new_jobs_count
+    logger.info("New jobs scraped this run: %d", new_jobs_count)
 
     if not new_jobs:
         logger.info("No new jobs found from scraper.")
@@ -85,6 +90,8 @@ def run_pipeline() -> None:
     # ── Steps 4–5: evaluate and notify ──────────────────────────────────────
     emails_sent = 0
     evaluated_count = 0
+    best_score = 0
+    best_job_id = ""
 
     if not jobs_to_evaluate:
         logger.info("Nothing new to evaluate.")
@@ -99,6 +106,9 @@ def run_pipeline() -> None:
                 summary = result["summary"]
                 logger.info("Job %s scored %d/10", job_id, score)
                 evaluated_count += 1
+                if score > best_score:
+                    best_score = score
+                    best_job_id = job_id
             except RuntimeError as exc:
                 exc_str = str(exc)
                 if "daily quota exhausted" in exc_str.lower():
@@ -150,7 +160,33 @@ def run_pipeline() -> None:
         "Pipeline finished in %.1fs — %d job(s) evaluated, %d email(s) sent.",
         duration, evaluated_count, emails_sent,
     )
+    # ── Log run + regenerate report ──────────────────────────────────────────
+    trigger = "manual" if os.environ.get("RUN_NOW") else "scheduled"
+    notes = ""
+    if new_jobs_count > 0 and best_score > 0:
+        notes = f"{new_jobs_count} new job(s); best: {best_job_id} ({best_score}/10)"
+    elif new_jobs_count > 0:
+        notes = f"{new_jobs_count} new job(s) found"
 
+    try:
+        insert_run_history(
+            trigger=trigger,
+            jobs_in_db=total_db_jobs,
+            new_jobs=new_jobs_count,
+            evaluated=evaluated_count,
+            emails_sent=emails_sent,
+            duration_s=duration,
+            status="ok",
+            notes=notes,
+        )
+    except Exception as exc:
+        logger.error("Failed to log run history: %s", exc)
+
+    try:
+        report_path = generate_report()
+        logger.info("Report generated: %s", report_path)
+    except Exception as exc:
+        logger.error("Failed to generate report: %s", exc)
 
 if __name__ == "__main__":
     run_pipeline()
