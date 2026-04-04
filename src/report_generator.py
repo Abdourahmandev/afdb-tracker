@@ -419,4 +419,19 @@ def generate_report() -> Path:
 
     out_path = DB_PATH.parent / "report.html"
     out_path.write_text(page, encoding="utf-8")
+
+    # ── Upload to Azure Blob static website (optional) ────────────────────
+    conn_str = os.environ.get("AZURE_STORAGE_CONNECTION_STRING")
+    if conn_str:
+        try:
+            from azure.storage.blob import BlobServiceClient, ContentSettings
+            client = BlobServiceClient.from_connection_string(conn_str)
+            blob = client.get_blob_client(container="$web", blob="report.html")
+            with open(out_path, "rb") as f:
+                blob.upload_blob(f, overwrite=True,
+                                 content_settings=ContentSettings(content_type="text/html"))
+            print("Report uploaded to Azure: https://afdbtracker4990.z13.web.core.windows.net/")
+        except Exception as e:
+            print(f"Azure upload skipped: {e}")
+
     return out_path
