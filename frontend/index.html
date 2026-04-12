@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="AfDB-Platform — personalised job alerts from the African Development Bank and other international organisations.">
+  <title>AfDB Job Alerts — International Development Careers</title>
+  <link rel="stylesheet" href="css/main.css">
+</head>
+<body class="page-wrapper">
+
+  <!-- ── Navbar ──────────────────────────────────────────────────────────────── -->
+  <nav class="navbar">
+    <a href="index.html" class="navbar-brand">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="2" y1="12" x2="22" y2="12"/>
+        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+      </svg>
+      AfDB <span class="brand-accent">Platform</span>
+    </a>
+    <ul class="navbar-nav">
+      <li><a href="register.html">Register</a></li>
+      <li>
+        <button class="btn btn-primary btn-sm" id="btn-signin" onclick="Auth.login()">
+          Sign In
+        </button>
+      </li>
+    </ul>
+  </nav>
+
+  <!-- ── Hero ────────────────────────────────────────────────────────────────── -->
+  <main class="main-content" style="padding:0;">
+    <section class="hero">
+      <h1>Stay ahead with <span>AfDB Job Alerts</span></h1>
+      <p>
+        Personalised job matches from the African Development Bank, World Bank,
+        UNDP, IMF, and more — scored by AI against your career profile.
+      </p>
+      <div class="hero-actions">
+        <a href="register.html" class="btn btn-primary">Create Free Account</a>
+        <button class="btn btn-outline" id="hero-signin" onclick="Auth.login()">
+          Sign In
+        </button>
+      </div>
+
+      <div class="sources-bar">
+        <strong style="color:var(--white);">Sources:</strong>
+        &nbsp;
+        <span style="color:#6ec6ff;">AfDB</span> &middot;
+        <span style="color:#81c995;">World Bank</span> &middot;
+        <span style="color:#b39ddb;">UNDP</span> &middot;
+        <span style="color:#ffb74d;">IMF</span>
+        &nbsp;&mdash;&nbsp; more coming soon
+      </div>
+    </section>
+
+    <!-- ── Feature strip ─────────────────────────────────────────────────────── -->
+    <section style="padding:56px 20px; background:var(--white);">
+      <div class="container">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:32px;text-align:center;">
+
+          <div>
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none"
+                 stroke="var(--primary)" stroke-width="1.5" aria-hidden="true"
+                 style="margin-bottom:12px;">
+              <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+            </svg>
+            <h3 style="color:var(--primary);margin-bottom:8px;">AI-Scored Matches</h3>
+            <p style="font-size:0.9rem;color:var(--gray-700);">
+              Every job is scored 1–10 against your career objectives so you
+              focus on the best fits first.
+            </p>
+          </div>
+
+          <div>
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none"
+                 stroke="var(--primary)" stroke-width="1.5" aria-hidden="true"
+                 style="margin-bottom:12px;">
+              <path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/>
+              <line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/>
+              <line x1="14" y1="1" x2="14" y2="4"/>
+            </svg>
+            <h3 style="color:var(--primary);margin-bottom:8px;">Multi-Source</h3>
+            <p style="font-size:0.9rem;color:var(--gray-700);">
+              One dashboard. Jobs from all major international development
+              organisations in a unified view.
+            </p>
+          </div>
+
+          <div>
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none"
+                 stroke="var(--primary)" stroke-width="1.5" aria-hidden="true"
+                 style="margin-bottom:12px;">
+              <path d="M22 17H2a3 3 0 0 0 3-3V9a7 7 0 0 1 14 0v5a3 3 0 0 0 3 3z"/>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+            </svg>
+            <h3 style="color:var(--primary);margin-bottom:8px;">Email Alerts</h3>
+            <p style="font-size:0.9rem;color:var(--gray-700);">
+              Get notified when new high-scoring jobs appear — only above your
+              personal threshold.
+            </p>
+          </div>
+
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ── Footer ──────────────────────────────────────────────────────────────── -->
+  <footer class="footer">
+    AfDB-Platform &copy; <span id="yr"></span> &mdash; Not affiliated with the African Development Bank Group.
+  </footer>
+
+  <script src="js/auth.js"></script>
+  <script>
+    document.getElementById('yr').textContent = new Date().getFullYear();
+
+    // If already logged in, go straight to dashboard
+    document.addEventListener('DOMContentLoaded', function () {
+      if (Auth.getUser()) {
+        window.location.href = 'dashboard.html';
+      }
+    });
+  </script>
+</body>
+</html>

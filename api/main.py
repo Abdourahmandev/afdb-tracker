@@ -51,21 +51,25 @@ app = FastAPI(
 )
 
 # CORS: allow Static Web Apps origin + localhost for dev
+_DEFAULT_CORS_ORIGINS = ",".join([
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://localhost:7071",
+    "https://*.azurestaticapps.net",
+])
 _ALLOWED_ORIGINS = [
     o.strip()
-    for o in os.environ.get(
-        "CORS_ALLOWED_ORIGINS",
-        "http://localhost:3000,http://localhost:5173",
-    ).split(",")
+    for o in os.environ.get("CORS_ALLOWED_ORIGINS", _DEFAULT_CORS_ORIGINS).split(",")
     if o.strip()
 ]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_ALLOWED_ORIGINS,
+    allow_origin_regex=r"https://.*\.azurestaticapps\.net",
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT"],
-    allow_headers=["Authorization", "Content-Type"],
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 _SOURCES_CONFIG = Path(__file__).parent.parent / "scrapers" / "config" / "sources.yaml"
@@ -233,6 +237,10 @@ async def get_jobs(
     for job in all_jobs:
         ev = eval_map.get(job["job_id"])
         score = ev["score"] if ev else None
+        # Exclude jobs with no score when caller requested a minimum score,
+        # and exclude jobs whose score falls below the threshold.
+        if min_score > 0 and score is None:
+            continue
         if score is not None and score < min_score:
             continue
         items.append(JobItem(

@@ -61,9 +61,14 @@ def _scrape_all_sources() -> dict[str, list[dict]]:
         logger.info("  Known IDs in Cosmos DB for %s: %d", source_id, len(known_ids))
 
         try:
-            # Scrapers are async; run them synchronously via asyncio
             import asyncio
-            records: list[JobRecord] = asyncio.run(scraper.scrape(known_ids))
+            import inspect
+            result = scraper.scrape(known_ids)
+            # Support both async scrapers (coroutine) and sync scrapers/mocks
+            if inspect.isawaitable(result):
+                records: list[JobRecord] = asyncio.run(result)
+            else:
+                records = result
         except NotImplementedError:
             logger.info("  Scraper for %s is a placeholder — skipping.", source_id)
             continue

@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Profile — AfDB Platform</title>
+  <link rel="stylesheet" href="css/main.css">
+</head>
+<body class="page-wrapper">
+
+  <!-- ── Navbar ──────────────────────────────────────────────────────────────── -->
+  <nav class="navbar">
+    <a href="dashboard.html" class="navbar-brand">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="2" y1="12" x2="22" y2="12"/>
+        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+      </svg>
+      AfDB <span class="brand-accent">Platform</span>
+    </a>
+    <ul class="navbar-nav">
+      <li><a href="dashboard.html">Dashboard</a></li>
+      <li><a href="profile.html" class="active">Profile</a></li>
+      <li>
+        <span class="navbar-user" id="nav-user"></span>
+        <a href="#" id="btn-logout" class="btn btn-sm btn-secondary">Sign Out</a>
+      </li>
+    </ul>
+  </nav>
+
+  <!-- ── Main ────────────────────────────────────────────────────────────────── -->
+  <main class="main-content">
+    <div class="container" style="max-width:640px;">
+
+      <div class="page-header">
+        <h1>My Profile</h1>
+        <p>Update your career objectives and job alert preferences.</p>
+      </div>
+
+      <!-- Info banner about GET /api/profile not yet existing -->
+      <div class="alert alert-info" style="margin-bottom:24px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" style="flex-shrink:0;margin-top:2px;">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <span>
+          Your name is pre-filled from your session. Other saved preferences will
+          appear here once <code>GET /api/profile</code> is added to the backend.
+          Any changes you save take effect immediately.
+        </span>
+      </div>
+
+      <div class="card">
+        <form id="profile-form" novalidate>
+
+          <!-- Global error -->
+          <div class="alert alert-error" id="form-error"
+               style="display:none;margin-bottom:16px;"></div>
+
+          <!-- Name -->
+          <div class="form-group">
+            <label for="field-name">Full name</label>
+            <input type="text" id="field-name" name="name"
+                   autocomplete="name" placeholder="Jane Doe">
+          </div>
+
+          <!-- Notification email -->
+          <div class="form-group">
+            <label for="field-notification-email">Notification email
+              <span style="font-weight:400;color:var(--gray-500);font-size:0.82rem;">(leave blank to use registration email)</span>
+            </label>
+            <input type="email" id="field-notification-email" name="notification_email"
+                   autocomplete="email" placeholder="same as account email">
+          </div>
+
+          <!-- Career profile text -->
+          <div class="form-group">
+            <label for="field-profile-text">Career profile &amp; objectives</label>
+            <textarea id="field-profile-text" name="profile_text" rows="7"
+                      placeholder="Describe your experience, skills, and the types of roles you're seeking. The AI uses this text to score job relevance for you."></textarea>
+            <span class="form-hint" id="char-counter">0 characters</span>
+          </div>
+
+          <!-- Score threshold -->
+          <div class="form-group">
+            <label for="field-threshold">
+              Minimum score threshold
+              <span style="font-weight:400;color:var(--gray-500);font-size:0.82rem;">
+                &mdash; jobs below this score will not trigger email alerts
+              </span>
+            </label>
+            <div class="slider-wrap">
+              <input type="range" id="field-threshold" name="score_threshold"
+                     min="1" max="10" value="7" step="1">
+              <span class="slider-value" id="threshold-display">7</span>
+            </div>
+            <span class="form-hint">1 = all jobs &nbsp; 10 = only near-perfect matches</span>
+          </div>
+
+          <!-- Enabled sources -->
+          <div class="form-group">
+            <label>Job sources to monitor</label>
+            <div class="checkbox-group" id="sources-checkboxes" aria-live="polite">
+              <!-- Populated by profile.js via GET /api/sources -->
+              <div class="spinner" style="width:24px;height:24px;margin:8px 0;"></div>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div style="display:flex;gap:12px;justify-content:flex-end;padding-top:8px;border-top:1px solid var(--gray-200);margin-top:8px;">
+            <a href="dashboard.html" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary" id="btn-save">
+              Save Changes
+            </button>
+          </div>
+
+        </form>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Toast container -->
+  <div class="toast-container" id="toast-container" aria-live="assertive"></div>
+
+  <footer class="footer">
+    AfDB-Platform &copy; <span id="yr"></span>
+  </footer>
+
+  <script src="js/auth.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/profile.js"></script>
+  <script>
+    document.getElementById('yr').textContent = new Date().getFullYear();
+
+    // Wire the form-error div to the element expected by profile.js
+    document.addEventListener('DOMContentLoaded', function () {
+      var errorEl = document.getElementById('form-error');
+      // profile.js uses classList.add/remove('show') — adapt display
+      var origAdd    = errorEl.classList.add.bind(errorEl.classList);
+      var origRemove = errorEl.classList.remove.bind(errorEl.classList);
+      errorEl.classList.add = function (cls) {
+        if (cls === 'show') errorEl.style.display = 'flex';
+        origAdd(cls);
+      };
+      errorEl.classList.remove = function (cls) {
+        if (cls === 'show') errorEl.style.display = 'none';
+        origRemove(cls);
+      };
+    });
+  </script>
+</body>
+</html>

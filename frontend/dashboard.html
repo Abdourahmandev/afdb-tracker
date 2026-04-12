@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Job Dashboard — AfDB Platform</title>
+  <link rel="stylesheet" href="css/main.css">
+</head>
+<body class="page-wrapper">
+
+  <!-- ── Navbar ──────────────────────────────────────────────────────────────── -->
+  <nav class="navbar">
+    <a href="dashboard.html" class="navbar-brand">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="2" y1="12" x2="22" y2="12"/>
+        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+      </svg>
+      AfDB <span class="brand-accent">Platform</span>
+    </a>
+    <ul class="navbar-nav">
+      <li><a href="dashboard.html" class="active">Dashboard</a></li>
+      <li><a href="profile.html">Profile</a></li>
+      <li>
+        <span class="navbar-user" id="nav-user"></span>
+        <a href="#" id="btn-logout" class="btn btn-sm btn-secondary">Sign Out</a>
+      </li>
+    </ul>
+  </nav>
+
+  <!-- ── Main ────────────────────────────────────────────────────────────────── -->
+  <main class="main-content">
+    <div class="container">
+
+      <!-- Page header -->
+      <div class="page-header">
+        <h1>Job Matches</h1>
+        <p>Jobs scored by AI against your career profile. Sorted by match score.</p>
+      </div>
+
+      <!-- Stats row -->
+      <div class="stats-row" aria-live="polite">
+        <div class="stat-chip">
+          <strong id="total-count">—</strong>&nbsp;jobs found
+        </div>
+      </div>
+
+      <!-- Filter bar -->
+      <div class="filter-bar" role="search">
+
+        <div class="filter-group">
+          <label for="filter-source">Source</label>
+          <select id="filter-source" aria-label="Filter by source">
+            <option value="">All sources</option>
+            <!-- Populated by dashboard.js -->
+          </select>
+        </div>
+
+        <div class="filter-group" style="min-width:120px;">
+          <label for="filter-min-score">Min score</label>
+          <input type="number" id="filter-min-score" min="0" max="10" value="0"
+                 step="1" placeholder="0–10" aria-label="Minimum match score">
+        </div>
+
+        <div class="filter-actions">
+          <button class="btn btn-secondary btn-sm" id="btn-clear-filters" type="button"
+                  onclick="clearFilters()">Clear</button>
+        </div>
+
+      </div>
+
+      <!-- Loading indicator -->
+      <div class="loading-row" id="loading-indicator" style="display:none;" aria-live="polite" aria-label="Loading jobs">
+        <div class="spinner"></div>
+      </div>
+
+      <!-- Empty state -->
+      <div class="empty-state" id="empty-state" style="display:none;">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none"
+             stroke="var(--gray-300)" stroke-width="1.5" aria-hidden="true"
+             style="margin-bottom:12px;">
+          <circle cx="11" cy="11" r="8"/>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <h3>No jobs found</h3>
+        <p>Try lowering the minimum score or changing the source filter.</p>
+      </div>
+
+      <!-- Job grid -->
+      <div class="job-grid" id="job-grid" aria-live="polite" aria-label="Job listings"></div>
+
+      <!-- Pagination -->
+      <div class="pagination" role="navigation" aria-label="Job list pagination">
+        <button class="btn btn-secondary btn-sm" id="btn-prev" disabled>
+          &larr; Previous
+        </button>
+        <span id="page-info">Page 1</span>
+        <button class="btn btn-secondary btn-sm" id="btn-next">
+          Next &rarr;
+        </button>
+      </div>
+
+    </div>
+  </main>
+
+  <footer class="footer">
+    AfDB-Platform &copy; <span id="yr"></span>
+  </footer>
+
+  <script src="js/auth.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/dashboard.js"></script>
+  <script>
+    document.getElementById('yr').textContent = new Date().getFullYear();
+
+    function clearFilters() {
+      document.getElementById('filter-source').value = '';
+      document.getElementById('filter-min-score').value = '0';
+      // Trigger change to reload
+      document.getElementById('filter-source').dispatchEvent(new Event('change'));
+    }
+  </script>
+</body>
+</html>

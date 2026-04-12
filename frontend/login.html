@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Signing In — AfDB Platform</title>
+  <link rel="stylesheet" href="css/main.css">
+  <!--
+    MSAL.js is loaded here so handleRedirect() can process the Entra token
+    callback. In dev (localhost) auth.js skips MSAL entirely, so this page
+    is never reached in dev mode.
+  -->
+  <script src="https://alcdn.msauth.net/browser/2.39.0/js/msal-browser.min.js"
+          integrity="sha384-nLbRKXo+8mN5BEJaIYTjcgcjm7TnDPMgU3B9A1HMqUDN5RZ/6YOQP6bkdVNnNRq"
+          crossorigin="anonymous"></script>
+</head>
+<body class="page-wrapper" style="justify-content:center;align-items:center;">
+  <div style="text-align:center;padding:60px 20px;">
+    <div class="spinner"></div>
+    <p style="color:var(--gray-700);margin-top:16px;" id="status-msg">
+      Completing sign-in, please wait&hellip;
+    </p>
+    <p style="font-size:0.82rem;color:var(--gray-500);margin-top:8px;" id="error-msg"></p>
+  </div>
+
+  <script src="js/auth.js"></script>
+  <script>
+    (async function () {
+      try {
+        await Auth.handleRedirect();
+        // handleRedirect() redirects to dashboard.html on success.
+        // If we are still here, there was no active redirect — go home.
+        document.getElementById('status-msg').textContent = 'Redirecting to home…';
+        setTimeout(function () { window.location.href = 'index.html'; }, 1500);
+      } catch (err) {
+        document.getElementById('status-msg').textContent = 'Sign-in failed.';
+        document.getElementById('error-msg').textContent  = err.message;
+        setTimeout(function () { window.location.href = 'index.html'; }, 3000);
+      }
+    })();
+  </script>
+</body>
+</html>

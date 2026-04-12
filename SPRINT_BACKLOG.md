@@ -161,17 +161,71 @@ Build the web frontend on Azure Static Web Apps: landing page, MSAL login, regis
 
 ---
 
-## Sprint 3 — Frontend (UPCOMING)
+## Sprint 3 — Frontend ✅ COMPLETE
 
-| # | Task | Owner | Priority |
-|---|------|-------|----------|
-| S3-01 | `frontend/` folder structure + `staticwebapp.config.json` | web-frontend | HIGH |
-| S3-02 | Landing page (`index.html`) with login button | web-frontend | HIGH |
-| S3-03 | MSAL.js auth module (`frontend/js/auth.js`) | web-frontend | HIGH |
-| S3-04 | Registration wizard — email → verify → profile setup | web-frontend | HIGH |
-| S3-05 | Job dashboard (`dashboard.html`) — multi-source, filterable, sortable | web-frontend | HIGH |
-| S3-06 | Profile editor (`profile.html`) — career text, source toggles, score slider | web-frontend | HIGH |
-| S3-07 | API client module (`frontend/js/api.js`) — fetch wrappers with auth headers | web-frontend | HIGH |
-| S3-08 | Source + score badges (color-coded, match legacy dashboard style) | web-frontend | MEDIUM |
-| S3-09 | Deploy to Azure Static Web Apps dev slot | devops-sec | MEDIUM |
-| S3-10 | Entra External ID tenant setup (manual — Azure Portal) | devops-sec | HIGH |
+| # | Task | Owner | Status | File |
+|---|------|-------|--------|------|
+| S3-01 | `frontend/` folder structure + `staticwebapp.config.json` | web-frontend | ✅ Done | [frontend/staticwebapp.config.json](frontend/staticwebapp.config.json) |
+| S3-02 | Landing page (`index.html`) with login button | web-frontend | ✅ Done | [frontend/index.html](frontend/index.html) |
+| S3-03 | MSAL.js auth module (`frontend/js/auth.js`) | web-frontend | ✅ Done | [frontend/js/auth.js](frontend/js/auth.js) |
+| S3-04 | Registration wizard — email → verify → profile setup | web-frontend | ✅ Done | [frontend/register.html](frontend/register.html) |
+| S3-05 | Job dashboard (`dashboard.html`) — multi-source, filterable, sortable | web-frontend | ✅ Done | [frontend/dashboard.html](frontend/dashboard.html) |
+| S3-06 | Profile editor (`profile.html`) — career text, source toggles, score slider | web-frontend | ✅ Done | [frontend/profile.html](frontend/profile.html) |
+| S3-07 | API client module (`frontend/js/api.js`) — fetch wrappers with auth headers | web-frontend | ✅ Done | [frontend/js/api.js](frontend/js/api.js) |
+| S3-08 | Source + score badges (color-coded) | web-frontend | ✅ Done | [frontend/css/main.css](frontend/css/main.css) |
+| S3-09 | GitHub Actions CI/CD workflows (SWA + API) | devops-sec | ✅ Done | [.github/workflows/](/.github/workflows/) |
+| S3-10 | Entra External ID setup guide | devops-sec | ✅ Done | [docs/entra-setup.md](docs/entra-setup.md) |
+| S3-11 | API bug fixes (min_score filter, scraper awaitable, CORS) | backend-pipeline | ✅ Done | [api/main.py](api/main.py), [src/pipeline_v2.py](src/pipeline_v2.py) |
+
+### Sprint 3 Review Summary — 2026-04-12
+
+#### ✅ Completed
+
+| Deliverable | What it does |
+|---|---|
+| `frontend/index.html` | Landing page: hero, Sign In (MSAL), Register button; auto-redirect if authenticated |
+| `frontend/register.html` | 3-step wizard: email+name → career profile text → score threshold + source checkboxes |
+| `frontend/dashboard.html` | Job grid: source/score filter bar, color-coded badges, 25-per-page pagination |
+| `frontend/profile.html` | Profile editor: name, profile text, score slider, source toggles, notification email |
+| `frontend/login.html` | MSAL redirect handler; dev-mode no-op fallback |
+| `frontend/css/main.css` | CSS variables, card grid, source badges (afdb=#003366, worldbank=#009FDA, undp=#1C9D4B, imf=#cc2233), score badges |
+| `frontend/js/auth.js` | Dev-mode: returns fake token + user (matches SKIP_AUTH=true); prod: MSAL.js flows |
+| `frontend/js/api.js` | Fetch wrappers for all 5 endpoints; auto-injects Bearer token; readable 422 errors |
+| `frontend/js/dashboard.js` | Source filter, min_score filter, debounced reload, pagination, dynamic card rendering |
+| `frontend/js/profile.js` | Form pre-fill (name from token), save → PUT /api/profile, success toast |
+| `.github/workflows/deploy-swa.yml` | SWA deploy on push to DEV `frontend/**`; close-PR cleanup job |
+| `.github/workflows/deploy-api.yml` | API deploy: tests gate deploy (separate jobs); SKIP_AUTH scoped to test step only |
+| `docs/entra-setup.md` | Step-by-step Entra External ID tenant + app registrations + Key Vault secrets |
+| `api/main.py` (fix) | `min_score` filter now excludes unscored jobs; CORS updated for SWA wildcard + localhost:7071 |
+| `src/pipeline_v2.py` (fix) | `inspect.isawaitable()` — handles both async scrapers and sync mocks correctly |
+
+#### 🧪 What You Can Test Now
+
+| Test | Command / Action |
+|---|---|
+| All 23 unit tests | `pip install -r requirements.txt && python -m pytest tests/ -v` |
+| FastAPI dev server | `SKIP_AUTH=true uvicorn api.main:app --reload --port 7071` |
+| Frontend locally | Open `frontend/index.html` in browser (or `npx serve frontend` on port 3000) |
+| Registration flow | Open `frontend/register.html` → fill 3 steps → POST hits `http://localhost:7071/api/register` |
+| Dashboard | Open `frontend/dashboard.html` → loads jobs from `http://localhost:7071/api/jobs` |
+| Profile editor | Open `frontend/profile.html` → edit fields → PUT hits `/api/profile` |
+
+#### ⚠️ Known Limitations / Deferred
+
+| Item | Note |
+|---|---|
+| `GET /api/profile` endpoint missing | `profile.js` pre-fills name from token only; add `GET /api/profile` in Sprint 4 to populate all fields |
+| `%%BACKEND_URL%%` placeholder in `staticwebapp.config.json` | CI/CD `sed` replacement needed before SWA deploy — covered in `deploy-swa.yml` comments |
+| Entra External ID tenant | Manual one-time setup required — follow `docs/entra-setup.md` |
+| SWA + API GitHub secrets | `AZURE_STATIC_WEB_APPS_API_TOKEN_DEV`, `AZURE_FUNCTIONAPP_PUBLISH_PROFILE`, `AZURE_FUNCTION_APP_NAME` var must be set before pipelines go live |
+
+#### ⏭ Deferred to Sprint 4
+
+- Azure deployment to dev environment (needs Entra tenant + GitHub secrets configured)
+- `GET /api/profile` endpoint
+- Vector embeddings / Cosmos DB vector index (scoring shortlist)
+- World Bank scraper real implementation
+- End-to-end test with real Cosmos DB (seed script → API → dashboard)
+
+#### 🎯 Sprint 4 Goal
+Deploy to Azure dev environment: provision resources via Bicep, configure Entra External ID, set GitHub secrets, and run a full end-to-end test from registration through job dashboard.

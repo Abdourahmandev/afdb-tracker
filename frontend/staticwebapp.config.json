@@ -1,0 +1,36 @@
+{
+  "routes": [
+    {
+      "route": "/api/*",
+      "rewrite": "%%BACKEND_URL%%/api/*"
+    },
+    {
+      "route": "/dashboard",
+      "allowedRoles": ["authenticated"]
+    },
+    {
+      "route": "/dashboard.html",
+      "allowedRoles": ["authenticated"]
+    },
+    {
+      "route": "/profile",
+      "allowedRoles": ["authenticated"]
+    },
+    {
+      "route": "/profile.html",
+      "allowedRoles": ["authenticated"]
+    }
+  ],
+  "navigationFallback": {
+    "rewrite": "/index.html",
+    "exclude": ["/css/*", "/js/*", "*.{ico,png,svg,jpg,jpeg,webp,woff,woff2}"]
+  },
+  "globalHeaders": {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "SAMEORIGIN",
+    "Referrer-Policy": "strict-origin-when-cross-origin"
+  },
+  "mimeTypes": {
+    ".json": "application/json"
+  }
+}
