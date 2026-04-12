@@ -4,3 +4,8 @@ __pycache__/
 *.pyc
 *.pyo
 .DS_Store
+.claude/settings.local.json
+# Test/scraper artifacts
+wb_*.html
+wb_*.json
+wb_*.py

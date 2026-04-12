@@ -1,0 +1,37 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "environment": {
+      "value": "dev"
+    },
+    "location": {
+      "value": "eastus"
+    },
+    "scraperImageTag": {
+      "value": "afdbtrackercr.azurecr.io/afdb-platform:dev-latest"
+    },
+    "geminiApiKey": {
+      "reference": {
+        "keyVault": {
+          "id": "/subscriptions/SUBSCRIPTION_ID/resourceGroups/rg-afdb-dev/providers/Microsoft.KeyVault/vaults/kv-afdb-dev"
+        },
+        "secretName": "gemini-api-key"
+      }
+    },
+    "gmailAppPassword": {
+      "reference": {
+        "keyVault": {
+          "id": "/subscriptions/SUBSCRIPTION_ID/resourceGroups/rg-afdb-dev/providers/Microsoft.KeyVault/vaults/kv-afdb-dev"
+        },
+        "secretName": "gmail-app-password"
+      }
+    },
+    "entraExternalTenantId": {
+      "value": "ENTRA_TENANT_ID_PLACEHOLDER"
+    },
+    "entraClientId": {
+      "value": "ENTRA_CLIENT_ID_PLACEHOLDER"
+    }
+  }
+}

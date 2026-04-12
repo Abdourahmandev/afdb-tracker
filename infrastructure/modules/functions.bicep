@@ -1,0 +1,130 @@
+// Azure Functions — API layer (Consumption plan, Python 3.12)
+// Hosts the FastAPI-based REST API for the AfDB-Platform
+
+param prefix string
+param environment string
+param location string
+param tags object
+param keyVaultName string
+param cosmosDbEndpoint string
+param cosmosDbDatabaseName string
+
+var storageAccountName = 'stfunc${prefix}${environment}'   // Must be globally unique, 24 chars max
+var hostingPlanName = 'asp-${prefix}-${environment}'
+var functionsAppName = 'func-${prefix}-${environment}'
+var appInsightsName = 'appi-${prefix}-${environment}'
+
+// ─── Storage Account for Functions runtime ───────────────────────────────────
+
+resource funcStorage 'Microsoft.Storage/storageAccounts@2023-05-01' = {
+  name: storageAccountName
+  location: location
+  tags: tags
+  sku: {
+    name: 'Standard_LRS'
+  }
+  kind: 'StorageV2'
+  properties: {
+    minimumTlsVersion: 'TLS1_2'
+    allowBlobPublicAccess: false
+    supportsHttpsTrafficOnly: true
+  }
+}
+
+// ─── Application Insights ────────────────────────────────────────────────────
+
+resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
+  name: appInsightsName
+  location: location
+  tags: tags
+  kind: 'web'
+  properties: {
+    Application_Type: 'web'
+    RetentionInDays: 30
+  }
+}
+
+// ─── Consumption Hosting Plan ────────────────────────────────────────────────
+
+resource hostingPlan 'Microsoft.Web/serverfarms@2023-12-01' = {
+  name: hostingPlanName
+  location: location
+  tags: tags
+  sku: {
+    name: 'Y1'
+    tier: 'Dynamic'
+  }
+  properties: {
+    reserved: true   // Linux
+  }
+}
+
+// ─── Function App ────────────────────────────────────────────────────────────
+
+resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
+  name: functionsAppName
+  location: location
+  tags: tags
+  kind: 'functionapp,linux'
+  identity: {
+    type: 'SystemAssigned'
+  }
+  properties: {
+    serverFarmId: hostingPlan.id
+    reserved: true
+    siteConfig: {
+      linuxFxVersion: 'Python|3.12'
+      pythonVersion: '3.12'
+      functionAppScaleLimit: 10   // Limit scale to avoid surprise costs
+      appSettings: [
+        {
+          name: 'AzureWebJobsStorage'
+          value: 'DefaultEndpointsProtocol=https;AccountName=${funcStorage.name};AccountKey=${funcStorage.listKeys().keys[0].value}'
+        }
+        {
+          name: 'FUNCTIONS_EXTENSION_VERSION'
+          value: '~4'
+        }
+        {
+          name: 'FUNCTIONS_WORKER_RUNTIME'
+          value: 'python'
+        }
+        {
+          name: 'APPINSIGHTS_INSTRUMENTATIONKEY'
+          value: appInsights.properties.InstrumentationKey
+        }
+        {
+          name: 'COSMOS_ENDPOINT'
+          value: cosmosDbEndpoint
+        }
+        {
+          name: 'COSMOS_DATABASE'
+          value: cosmosDbDatabaseName
+        }
+        {
+          name: 'ENVIRONMENT'
+          value: environment
+        }
+        {
+          name: 'KEY_VAULT_NAME'
+          value: keyVaultName
+        }
+      ]
+      cors: {
+        // Only allow our Static Web App to call the API
+        allowedOrigins: [
+          'https://swa-afdb-${environment}.azurestaticapps.net'
+        ]
+        supportCredentials: true
+      }
+    }
+    httpsOnly: true
+  }
+}
+
+// ─── Outputs ─────────────────────────────────────────────────────────────────
+
+output functionAppId string = functionApp.id
+output defaultHostname string = functionApp.properties.defaultHostName
+output principalId string = functionApp.identity.principalId
+output functionAppName string = functionApp.name

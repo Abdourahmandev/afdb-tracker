@@ -1,0 +1,78 @@
+# AfDB-Platform — Job Source Configuration
+# Each source defines a pluggable scraper. Add a new source by:
+#   1. Creating scrapers/{source_id}/scraper.py implementing BaseScraper
+#   2. Adding an entry here with enabled: true
+# The pipeline loads all enabled sources and runs them in sequence.
+
+sources:
+  afdb:
+    enabled: true
+    display_name: "African Development Bank (AfDB)"
+    scraper_class: "scrapers.afdb.scraper.AfDBScraper"
+    base_url: "https://www.afdb.org/en/careers"
+    search_keywords:
+      - "data"
+      - "analytics"
+      - "technology"
+    rate_limit_seconds: 2
+    respect_robots_txt: true
+    user_agent: "AfDB-Platform-Tracker/1.0 (contact: abdourahman03@gmail.com)"
+    max_pages: 10
+    color: "#0066CC"   # Used in frontend source badge
+    enabled_by_default: true   # New users get this source enabled automatically
+
+  worldbank:
+    enabled: false   # Sprint 1 — scraper not yet built
+    display_name: "World Bank Group"
+    scraper_class: "scrapers.worldbank.scraper.WorldBankScraper"
+    base_url: "https://jobs.worldbank.org"
+    search_keywords:
+      - "data"
+      - "technology"
+      - "analytics"
+    rate_limit_seconds: 2
+    respect_robots_txt: true
+    user_agent: "AfDB-Platform-Tracker/1.0 (contact: abdourahman03@gmail.com)"
+    max_pages: 10
+    color: "#009900"
+    enabled_by_default: false
+
+  undp:
+    enabled: false   # Sprint 7+
+    display_name: "United Nations Development Programme (UNDP)"
+    scraper_class: "scrapers.undp.scraper.UNDPScraper"
+    base_url: "https://jobs.undp.org"
+    search_keywords:
+      - "data"
+      - "information technology"
+      - "monitoring"
+    rate_limit_seconds: 3
+    respect_robots_txt: true
+    user_agent: "AfDB-Platform-Tracker/1.0 (contact: abdourahman03@gmail.com)"
+    max_pages: 5
+    color: "#6B2FA0"
+    enabled_by_default: false
+
+  imf:
+    enabled: false   # Sprint 7+
+    display_name: "International Monetary Fund (IMF)"
+    scraper_class: "scrapers.imf.scraper.IMFScraper"
+    base_url: "https://www.imf.org/en/About/Recruitment"
+    search_keywords:
+      - "data"
+      - "economist"
+      - "statistics"
+    rate_limit_seconds: 2
+    respect_robots_txt: true
+    user_agent: "AfDB-Platform-Tracker/1.0 (contact: abdourahman03@gmail.com)"
+    max_pages: 5
+    color: "#E87722"
+    enabled_by_default: false
+
+# Global scraping policy
+global:
+  max_concurrent_scrapers: 1   # Run scrapers sequentially to avoid IP bans
+  inter_scraper_delay_seconds: 5
+  timeout_seconds: 300         # Per-scraper timeout
+  retry_attempts: 2
+  retry_delay_seconds: 10
