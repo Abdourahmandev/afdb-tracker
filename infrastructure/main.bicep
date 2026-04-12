@@ -1,5 +1,8 @@
 // AfDB-Platform — Main Bicep Orchestrator
-// Deploys all modules for a given environment (dev | qa | prod)
+// Deploys the 5 core resources: Key Vault, Cosmos DB, Storage, Static Web App, Functions
+//
+// The Container Apps scraper job (containerapp-job.bicep) is deployed separately
+// via deploy-scraper.bicep once Dynamic VMs quota is granted and a Docker image exists.
 //
 // Usage:
 //   az deployment sub create \
@@ -18,9 +21,6 @@ param environment string
 @description('Azure region for all resources')
 param location string = 'eastus'
 
-@description('Container image for the scraper job (e.g. afdbtrackercr.azurecr.io/afdb-platform:latest)')
-param scraperImageTag string
-
 @description('Gemini API key (stored in Key Vault, passed as secure string for initial seeding)')
 @secure()
 param geminiApiKey string = ''
@@ -34,6 +34,9 @@ param entraExternalTenantId string = ''
 
 @description('Microsoft Entra External ID client ID for the SPA')
 param entraClientId string = ''
+
+@description('Region for Azure Static Web Apps (must be one of: westus2, centralus, eastus2, westeurope, eastasia)')
+param swaLocation string = 'eastus2'
 
 // ─── Variables ────────────────────────────────────────────────────────────────
 
@@ -97,7 +100,7 @@ module staticWebApp 'modules/staticwebapp.bicep' = {
   params: {
     prefix: prefix
     environment: environment
-    location: location
+    location: swaLocation   // SWA has limited region support; other resources use 'location'
     tags: tags
   }
 }
@@ -116,45 +119,26 @@ module functions 'modules/functions.bicep' = {
   }
 }
 
-module containerAppJob 'modules/containerapp-job.bicep' = {
-  name: 'deploy-containerapp-job'
+// ─── Role Assignments ─────────────────────────────────────────────────────────
+
+// Cosmos DB data-plane: Functions → Data Contributor
+// Uses sqlRoleAssignments (not RBAC) — Cosmos DB data plane is its own role system.
+module cosmosRoles 'modules/cosmos-roles.bicep' = {
+  name: 'deploy-cosmos-roles'
   scope: rg
   params: {
-    prefix: prefix
-    environment: environment
-    location: location
-    tags: tags
-    scraperImageTag: scraperImageTag
+    cosmosAccountName: cosmosDb.outputs.accountName
+    functionsPrincipalId: functions.outputs.principalId
+  }
+}
+
+// Key Vault Secrets User: Functions → read secrets at runtime
+module kvRoles 'modules/kv-roles.bicep' = {
+  name: 'deploy-kv-roles'
+  scope: rg
+  params: {
     keyVaultName: keyVault.outputs.keyVaultName
-    cosmosDbEndpoint: cosmosDb.outputs.endpoint
-    cosmosDbDatabaseName: cosmosDb.outputs.databaseName
-    storageAccountName: storage.outputs.storageAccountName
-  }
-}
-
-// ─── Role Assignments: Managed Identity → Cosmos DB ──────────────────────────
-
-// Container Apps Job → Cosmos DB Data Contributor
-var cosmosDataContributorRoleId = '00000000-0000-0000-0000-000000000002'
-
-resource scraperCosmosRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(cosmosDb.outputs.cosmosAccountId, containerAppJob.outputs.principalId, cosmosDataContributorRoleId)
-  scope: resourceGroup()
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', cosmosDataContributorRoleId)
-    principalId: containerAppJob.outputs.principalId
-    principalType: 'ServicePrincipal'
-  }
-}
-
-// Azure Functions → Cosmos DB Data Contributor
-resource functionsCosmosRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(cosmosDb.outputs.cosmosAccountId, functions.outputs.principalId, cosmosDataContributorRoleId)
-  scope: resourceGroup()
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', cosmosDataContributorRoleId)
-    principalId: functions.outputs.principalId
-    principalType: 'ServicePrincipal'
+    functionsPrincipalId: functions.outputs.principalId
   }
 }
 

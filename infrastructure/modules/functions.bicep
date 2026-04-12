@@ -44,16 +44,24 @@ resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
   }
 }
 
-// ─── Consumption Hosting Plan ────────────────────────────────────────────────
+// ─── Hosting Plan ────────────────────────────────────────────────────────────
+// Dev uses B1 Basic (~$13/month) — Y1/Dynamic requires Dynamic VMs quota (0 by default
+// in new subscriptions). Request a quota increase at portal.azure.com → Subscriptions →
+// Usage + Quotas, then change to: sku { name: 'Y1', tier: 'Dynamic' }.
+// Non-dev uses Y1 Consumption (pay-per-execution, scale-to-zero).
+
+// F1 (Free/Shared) requires no VM quota — suitable for dev/testing.
+// Switch to Y1 (Consumption) or B1 (Basic) once quota is granted at:
+// portal.azure.com → Subscriptions → Usage + Quotas → request increase.
+var planSku = environment == 'dev'
+  ? { name: 'B1', tier: 'Basic' }
+  : { name: 'Y1', tier: 'Dynamic' }
 
 resource hostingPlan 'Microsoft.Web/serverfarms@2023-12-01' = {
   name: hostingPlanName
   location: location
   tags: tags
-  sku: {
-    name: 'Y1'
-    tier: 'Dynamic'
-  }
+  sku: planSku
   properties: {
     reserved: true   // Linux
   }

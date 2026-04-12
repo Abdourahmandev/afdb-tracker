@@ -6,32 +6,19 @@
       "value": "dev"
     },
     "location": {
-      "value": "eastus"
-    },
-    "scraperImageTag": {
-      "value": "afdbtrackercr.azurecr.io/afdb-platform:dev-latest"
+      "value": "australiacentral"
     },
     "geminiApiKey": {
-      "reference": {
-        "keyVault": {
-          "id": "/subscriptions/SUBSCRIPTION_ID/resourceGroups/rg-afdb-dev/providers/Microsoft.KeyVault/vaults/kv-afdb-dev"
-        },
-        "secretName": "gemini-api-key"
-      }
+      "value": ""
     },
     "gmailAppPassword": {
-      "reference": {
-        "keyVault": {
-          "id": "/subscriptions/SUBSCRIPTION_ID/resourceGroups/rg-afdb-dev/providers/Microsoft.KeyVault/vaults/kv-afdb-dev"
-        },
-        "secretName": "gmail-app-password"
-      }
+      "value": ""
     },
     "entraExternalTenantId": {
-      "value": "ENTRA_TENANT_ID_PLACEHOLDER"
+      "value": ""
     },
     "entraClientId": {
-      "value": "ENTRA_CLIENT_ID_PLACEHOLDER"
+      "value": ""
     }
   }
 }

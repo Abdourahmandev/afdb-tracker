@@ -29,9 +29,9 @@ resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2024-02-15-preview
         isZoneRedundant: false
       }
     ]
-    capabilities: [
-      { name: 'EnableNoSQLVectorSearch' }  // Enable vector search (preview)
-    ]
+    // TODO Sprint 5: add { name: 'EnableNoSQLVectorSearch' } once jobs container
+    // moves to dedicated throughput (vector indexes require per-container RU/s).
+    capabilities: []
     disableLocalAuth: false   // Allow connection string for local dev; set true in prod
     publicNetworkAccess: environment == 'prod' ? 'Disabled' : 'Enabled'
   }
@@ -71,31 +71,15 @@ resource jobsContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/conta
         indexingMode: 'consistent'
         automatic: true
         includedPaths: [
-          { path: '/source_id/?' }
-          { path: '/scraped_at/?' }
-          { path: '/deadline/?' }
+          { path: '/*' }   // Index all paths; expensive fields are excluded below
         ]
         excludedPaths: [
           { path: '/description_raw/?' }  // Exclude large text field
-          { path: '/embedding/*' }         // Vector path excluded from regular index
+          { path: '/embedding/*' }         // Exclude embedding blob from regular index
           { path: '/"_etag"/?' }
         ]
-        vectorIndexes: [
-          {
-            path: '/embedding'
-            type: 'diskANN'
-          }
-        ]
-      }
-      vectorEmbeddingPolicy: {
-        vectorEmbeddings: [
-          {
-            path: '/embedding'
-            dataType: 'float32'
-            distanceFunction: 'cosine'
-            dimensions: 768   // Gemini text-embedding-004 output dimensions
-          }
-        ]
+        // TODO Sprint 5: add vectorIndexes (diskANN) + vectorEmbeddingPolicy once
+        // jobs container moves to dedicated throughput (required for vector search).
       }
     }
   }
@@ -119,9 +103,7 @@ resource usersContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/cont
         indexingMode: 'consistent'
         automatic: true
         includedPaths: [
-          { path: '/email/?' }
-          { path: '/verified/?' }
-          { path: '/enabled_sources/*' }
+          { path: '/*' }
         ]
         excludedPaths: [
           { path: '/profile_text/?' }
@@ -150,12 +132,7 @@ resource evaluationsContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabase
         indexingMode: 'consistent'
         automatic: true
         includedPaths: [
-          { path: '/user_id/?' }
-          { path: '/job_id/?' }
-          { path: '/source_id/?' }
-          { path: '/score/?' }
-          { path: '/email_sent/?' }
-          { path: '/evaluated_at/?' }
+          { path: '/*' }
         ]
         excludedPaths: [
           { path: '/summary/?' }

@@ -7,7 +7,6 @@ param environment string
 param location string
 param tags object
 param scraperImageTag string
-param keyVaultName string
 param cosmosDbEndpoint string
 param cosmosDbDatabaseName string
 param storageAccountName string
@@ -93,13 +92,15 @@ resource scraperJob 'Microsoft.App/jobs@2024-03-01' = {
               value: storageAccountName
             }
             {
-              // Gemini API key from Key Vault via managed identity
+              // TODO Sprint 5: set via `az containerapp job update` after KV secrets are seeded
+              // az containerapp job update --name <job> --resource-group <rg>
+              //   --set-env-vars GEMINI_API_KEY=secretref:gemini-api-key
               name: 'GEMINI_API_KEY'
-              secretRef: 'gemini-api-key'
+              value: ''
             }
             {
               name: 'GMAIL_APP_PASSWORD'
-              secretRef: 'gmail-app-password'
+              value: ''
             }
             {
               name: 'SCORE_THRESHOLD'

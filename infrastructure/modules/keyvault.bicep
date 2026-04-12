@@ -32,7 +32,9 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
     enableRbacAuthorization: true      // Use RBAC instead of legacy access policies
     enableSoftDelete: true
     softDeleteRetentionInDays: 7       // Minimum — dev environment
-    enablePurgeProtection: environment == 'prod'  // Only in prod
+    // enablePurgeProtection is omitted for dev/qa — setting it to false is invalid;
+    // once enabled it cannot be reversed. Only set true in prod.
+    enablePurgeProtection: environment == 'prod' ? true : null
     publicNetworkAccess: 'Enabled'     // Restrict further in prod via network rules
     networkAcls: {
       defaultAction: 'Allow'   // TODO Sprint 5: restrict to Functions + Container Apps outbound IPs
