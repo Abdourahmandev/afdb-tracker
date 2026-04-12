@@ -188,5 +188,17 @@ def run_pipeline() -> None:
     except Exception as exc:
         logger.error("Failed to generate report: %s", exc)
 
+LEGACY_MODE = os.environ.get("LEGACY_MODE", "true").lower() == "true"
+
+
+def run() -> None:
+    """Entry point that respects LEGACY_MODE. Called by scheduler.py."""
+    if LEGACY_MODE:
+        run_pipeline()
+    else:
+        from pipeline_v2 import run_pipeline_v2
+        run_pipeline_v2()
+
+
 if __name__ == "__main__":
-    run_pipeline()
+    run()
