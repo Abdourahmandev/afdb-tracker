@@ -178,6 +178,45 @@ def mark_evaluation_email_sent(user_id: str, job_id: str) -> None:
         logger.warning("Evaluation %s not found — cannot mark as sent", eval_id)
 
 
+def get_user_by_email(email: str) -> dict | None:
+    """Return a user document by email, or None if not found."""
+    try:
+        items = list(_users().query_items(
+            query="SELECT * FROM c WHERE c.email = @e",
+            parameters=[{"name": "@e", "value": email}],
+            enable_cross_partition_query=True,
+        ))
+        return items[0] if items else None
+    except exceptions.CosmosHttpResponseError as e:
+        logger.error("get_user_by_email(%s) failed: %s", email, e)
+        return None
+
+
+def get_user_by_id(user_id: str) -> dict | None:
+    """Return a user document by id, or None if not found."""
+    try:
+        return _users().read_item(item=user_id, partition_key=user_id)
+    except exceptions.CosmosResourceNotFoundError:
+        return None
+    except exceptions.CosmosHttpResponseError as e:
+        logger.error("get_user_by_id(%s) failed: %s", user_id, e)
+        return None
+
+
+def get_user_by_verification_token(token: str) -> dict | None:
+    """Return the user with this pending verification token, or None."""
+    try:
+        items = list(_users().query_items(
+            query="SELECT * FROM c WHERE c.verification_token = @t",
+            parameters=[{"name": "@t", "value": token}],
+            enable_cross_partition_query=True,
+        ))
+        return items[0] if items else None
+    except exceptions.CosmosHttpResponseError as e:
+        logger.error("get_user_by_verification_token failed: %s", e)
+        return None
+
+
 def get_unemailed_evaluations_for_user(user_id: str, threshold: int) -> list[dict]:
     """Return evaluations ≥ threshold that haven't been emailed yet."""
     try:

@@ -9,3 +9,5 @@ __pycache__/
 wb_*.html
 wb_*.json
 wb_*.py
+# Azure Functions local settings (contains secrets)
+local.settings.json

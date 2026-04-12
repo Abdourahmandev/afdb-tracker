@@ -108,17 +108,70 @@ REST API deployable to Azure Functions dev: /register, /verify, /jobs, /profile 
 
 ---
 
-## Sprint 2 — API Layer (UPCOMING)
+## Sprint 2 — API Layer ✅ COMPLETE
+
+| # | Task | Owner | Status | File |
+|---|------|-------|--------|------|
+| S2-01 | FastAPI app — Azure Functions v2 ASGI | backend-pipeline | ✅ Done | [api/main.py](api/main.py), [function_app.py](function_app.py), [host.json](host.json) |
+| S2-02 | `POST /api/register` + verification email | backend-pipeline | ✅ Done | [api/main.py](api/main.py) |
+| S2-03 | `GET /api/verify` — activate user | backend-pipeline | ✅ Done | [api/main.py](api/main.py) |
+| S2-04 | `GET /api/jobs` — paginated + filtered | backend-pipeline | ✅ Done | [api/main.py](api/main.py) |
+| S2-05 | `PUT /api/profile` — update preferences | backend-pipeline | ✅ Done | [api/main.py](api/main.py) |
+| S2-06 | `GET /api/sources` from sources.yaml | backend-pipeline | ✅ Done | [api/main.py](api/main.py) |
+| S2-07 | Entra External ID JWT validation + SKIP_AUTH dev mode | backend-pipeline | ✅ Done | [api/auth.py](api/auth.py) |
+| S2-08 | Deploy to Azure Functions — Bicep already done Sprint 0 | devops-sec | ✅ Ready | [infrastructure/modules/functions.bicep](infrastructure/modules/functions.bicep) |
+| S2-09 | Cosmos DB dev seed script | backend-pipeline | ✅ Done | [scripts/seed_cosmos.py](scripts/seed_cosmos.py) |
+| S2-10 | API integration tests (16 tests, all mocked) | backend-pipeline | ✅ Done | [tests/test_api.py](tests/test_api.py) |
+
+### Sprint 2 Review Summary — 2026-04-12
+
+#### ✅ Completed
+
+| Deliverable | What it does |
+|---|---|
+| `api/main.py` | FastAPI app: 5 endpoints + CORS + health check |
+| `api/auth.py` | Entra External ID JWT validation; `SKIP_AUTH=true` bypasses for local dev |
+| `api/models.py` | Pydantic v2 request/response models for all endpoints |
+| `function_app.py` | Azure Functions v2 ASGI wrapper — one file, zero config |
+| `host.json` | Azure Functions host config (v4 extension bundle) |
+| `scripts/seed_cosmos.py` | Seeds 2 test users + 3 sample jobs into Cosmos DB |
+| `src/cosmos_db.py` (+3 fns) | Added `get_user_by_email`, `get_user_by_id`, `get_user_by_verification_token` |
+| `tests/test_api.py` | 16 tests: all endpoints, auth bypass, error cases |
+| `requirements.txt` | Added: fastapi, pydantic[email], uvicorn, azure-functions, PyJWT[crypto], httpx |
+
+#### 🧪 What You Can Test Now
+
+| Test | Command |
+|---|---|
+| All tests (no cloud) | `pip install -r requirements.txt && python -m pytest tests/ -v` |
+| FastAPI dev server | `SKIP_AUTH=true uvicorn api.main:app --reload --port 7071` |
+| Swagger UI | Open `http://localhost:7071/docs` after starting dev server |
+| Health check | `curl http://localhost:7071/api/health` |
+| List sources | `curl http://localhost:7071/api/sources` |
+| Register a user | `curl -X POST http://localhost:7071/api/register -H "Content-Type: application/json" -d '{"email":"test@example.com","name":"Test","profile_text":"Data engineer with 5+ years Python SQL Azure experience in analytics.","score_threshold":7,"enabled_sources":["afdb"]}'` |
+| Seed Cosmos DB | Set `COSMOS_CONNECTION_STRING` in `.env`, then `python scripts/seed_cosmos.py` |
+
+#### ⏭ Deferred to Sprint 3
+- Azure Functions deployment to dev Azure environment (needs Entra tenant configured)
+- Entra External ID tenant setup (manual one-time step in Azure Portal)
+- Frontend (Sprint 3)
+
+#### 🎯 Sprint 3 Goal
+Build the web frontend on Azure Static Web Apps: landing page, MSAL login, registration wizard, unified job dashboard, profile editor.
+
+---
+
+## Sprint 3 — Frontend (UPCOMING)
 
 | # | Task | Owner | Priority |
 |---|------|-------|----------|
-| S2-01 | `api/main.py` — FastAPI app (Azure Functions v2 Python model) | backend-pipeline | HIGH |
-| S2-02 | `POST /api/register` — create user, send verification email | backend-pipeline | HIGH |
-| S2-03 | `GET /api/verify` — verify email token, activate user | backend-pipeline | HIGH |
-| S2-04 | `GET /api/jobs` — paginated, filtered job list for authenticated user | backend-pipeline | HIGH |
-| S2-05 | `PUT /api/profile` — update profile text + source preferences | backend-pipeline | HIGH |
-| S2-06 | `GET /api/sources` — list available job sources from sources.yaml | backend-pipeline | LOW |
-| S2-07 | Entra External ID OIDC token validation middleware | backend-pipeline | HIGH |
-| S2-08 | Deploy Functions to dev environment via Bicep | devops-sec | HIGH |
-| S2-09 | Cosmos DB dev seed script | backend-pipeline | MEDIUM |
-| S2-10 | API integration tests (mocked, no cloud) | backend-pipeline | MEDIUM |
+| S3-01 | `frontend/` folder structure + `staticwebapp.config.json` | web-frontend | HIGH |
+| S3-02 | Landing page (`index.html`) with login button | web-frontend | HIGH |
+| S3-03 | MSAL.js auth module (`frontend/js/auth.js`) | web-frontend | HIGH |
+| S3-04 | Registration wizard — email → verify → profile setup | web-frontend | HIGH |
+| S3-05 | Job dashboard (`dashboard.html`) — multi-source, filterable, sortable | web-frontend | HIGH |
+| S3-06 | Profile editor (`profile.html`) — career text, source toggles, score slider | web-frontend | HIGH |
+| S3-07 | API client module (`frontend/js/api.js`) — fetch wrappers with auth headers | web-frontend | HIGH |
+| S3-08 | Source + score badges (color-coded, match legacy dashboard style) | web-frontend | MEDIUM |
+| S3-09 | Deploy to Azure Static Web Apps dev slot | devops-sec | MEDIUM |
+| S3-10 | Entra External ID tenant setup (manual — Azure Portal) | devops-sec | HIGH |

@@ -9,3 +9,11 @@ azure-cosmos>=4.9.0
 azure-identity>=1.17.0
 pyyaml>=6.0
 pytest>=8.0.0
+# Sprint 2 — API layer
+fastapi>=0.115.0
+pydantic[email]>=2.0.0
+uvicorn>=0.30.0
+azure-functions>=1.21.0
+PyJWT[crypto]>=2.8.0
+requests>=2.32.0
+httpx>=0.27.0
