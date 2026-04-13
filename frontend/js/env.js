@@ -21,4 +21,8 @@
   // API scope — must match the scope exposed by the AfDB Platform API app registration
   // Format: api://<API_CLIENT_ID>/<scope_name>
   w.ENTRA_SCOPES = 'api://5958c7ab-9222-4621-9ac0-d094a720b1dc/jobs.read';
+
+  // Direct Function App URL — SWA free tier does not proxy /api/* to external URLs.
+  // The frontend calls the Function App directly; CORS is enabled on func-afdb-dev.
+  w.API_BASE = 'https://func-afdb-dev.azurewebsites.net';
 })(window);
