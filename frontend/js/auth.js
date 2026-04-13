@@ -26,8 +26,9 @@
   // injected at build time (see deploy pipeline).
   const MSAL_CONFIG = {
     auth: {
-      clientId:    global.ENTRA_CLIENT_ID    || '',
-      authority:   global.ENTRA_AUTHORITY    || '',
+      clientId:         global.ENTRA_CLIENT_ID  || '',
+      authority:        global.ENTRA_AUTHORITY  || '',
+      knownAuthorities: ['afdbplatformdev.ciamlogin.com'], // required: CIAM domain not in MSAL default trust list
       redirectUri: global.location && global.location.origin
                     ? global.location.origin + '/login.html'
                     : '',
@@ -121,7 +122,12 @@
     }
     const msalApp = getMsalInstance();
     if (!msalApp) return;
-    await msalApp.loginRedirect({ scopes: SCOPES });
+    try {
+      await msalApp.loginRedirect({ scopes: SCOPES });
+    } catch (err) {
+      console.error('auth.js: loginRedirect failed:', err);
+      alert('Sign-in could not start: ' + err.message);
+    }
   }
 
   /**
