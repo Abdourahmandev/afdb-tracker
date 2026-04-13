@@ -51,12 +51,11 @@ jobs:
           cache: "pip"
           cache-dependency-path: requirements.txt
 
-      # Install into .python_packages so the same directory is uploaded to Azure.
-      # Azure Functions Consumption (Linux) reads packages from this path when
-      # scm-do-build-during-deployment is false.
-      - name: Install dependencies into .python_packages
+      # Install into system Python for tests, and into .python_packages for the deploy package.
+      - name: Install dependencies
         run: |
           pip install --upgrade pip
+          pip install -r requirements.txt
           pip install -r requirements.txt --target=".python_packages/lib/site-packages"
 
       # Docker build sanity check (legacy pipeline requirement — runs on every pipeline)
