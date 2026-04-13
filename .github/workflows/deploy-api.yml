@@ -28,6 +28,8 @@ on:
       - "src/**"
       - "scrapers/**"
       - "requirements.txt"
+      - ".github/workflows/deploy-api.yml"
+  workflow_dispatch:
 
 # Prevent concurrent deployments; do not cancel in-progress deploys
 concurrency:
