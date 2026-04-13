@@ -72,7 +72,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-_SOURCES_CONFIG = Path(__file__).parent.parent / "scrapers" / "config" / "sources.yaml"
+# Primary path travels inside the deployed zip alongside api/; fallback for local dev.
+_SOURCES_CONFIG = Path(__file__).parent / "sources.yaml"
+_SOURCES_CONFIG_FALLBACK = Path(__file__).parent.parent / "scrapers" / "config" / "sources.yaml"
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -118,9 +120,13 @@ def _send_verification_email(to_email: str, name: str, token: str) -> None:
     logger.info("Verification email sent to %s", to_email)
 
 
-def _load_sources() -> list[dict]:
-    with open(_SOURCES_CONFIG) as f:
-        return yaml.safe_load(f).get("sources", {})
+def _load_sources() -> dict:
+    for path in (_SOURCES_CONFIG, _SOURCES_CONFIG_FALLBACK):
+        if path.exists():
+            with open(path) as f:
+                return yaml.safe_load(f).get("sources", {})
+    logger.warning("sources.yaml not found — returning empty sources list")
+    return {}
 
 
 # ── Routes ────────────────────────────────────────────────────────────────────
@@ -301,6 +307,28 @@ async def update_profile(
     user["updated_at"] = datetime.now(timezone.utc).isoformat()
     cosmos_db.upsert_user(user)
 
+    return UserProfile(
+        user_id=user["id"],
+        email=user["email"],
+        name=user["name"],
+        score_threshold=user["score_threshold"],
+        enabled_sources=user["enabled_sources"],
+        verified=user["verified"],
+    )
+
+
+@app.get("/api/profile", response_model=UserProfile)
+async def get_profile(
+    claims: dict = Depends(get_current_user),
+):
+    """Return the authenticated user's profile."""
+    user_id = claims.get("sub") or claims.get("id", "")
+    user = cosmos_db.get_user_by_id(user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User profile not found. Complete registration first.",
+        )
     return UserProfile(
         user_id=user["id"],
         email=user["email"],

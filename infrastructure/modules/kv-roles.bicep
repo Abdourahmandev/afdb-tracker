@@ -1,7 +1,7 @@
 // Key Vault RBAC role assignments — Key Vault Secrets User
 // Required for managed identities to read secrets at runtime.
 //
-// Key Vault Secrets User role ID: 4633458b-17de-408a-b874-0445c86b69e0
+// Key Vault Secrets User role ID: 4633458b-17de-408a-b874-0445c86b69e6
 // This is an Azure built-in RBAC role (control plane), valid for KV with
 // enableRbacAuthorization: true.
 
