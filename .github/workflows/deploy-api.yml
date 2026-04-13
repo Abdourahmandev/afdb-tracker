@@ -106,6 +106,13 @@ jobs:
           zip -r func-deploy.zip function_app.py host.json requirements.txt api/ src/ scrapers/config/
           echo "Zip size: $(du -sh func-deploy.zip | cut -f1)"
 
+      # Stop the app before deploying to avoid file-lock conflicts during extraction.
+      - name: Stop Function App
+        run: |
+          az functionapp stop \
+            --name ${{ vars.AZURE_FUNCTION_APP_NAME }} \
+            --resource-group rg-afdb-dev
+
       - name: Deploy zip with remote build
         run: |
           az functionapp deployment source config-zip \
@@ -114,3 +121,10 @@ jobs:
             --src func-deploy.zip \
             --build-remote true \
             --timeout 300
+
+      - name: Start Function App
+        if: always()
+        run: |
+          az functionapp start \
+            --name ${{ vars.AZURE_FUNCTION_APP_NAME }} \
+            --resource-group rg-afdb-dev
