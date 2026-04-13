@@ -2,7 +2,7 @@
   "routes": [
     {
       "route": "/api/*",
-      "rewrite": "%%BACKEND_URL%%/api/*"
+      "rewrite": "https://func-afdb-dev.azurewebsites.net/api/*"
     },
     {
       "route": "/dashboard",

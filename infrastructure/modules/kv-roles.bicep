@@ -10,7 +10,7 @@ param functionsPrincipalId string
 @description('Container Apps Job principal ID. Leave empty to skip scraper role assignment.')
 param scraperPrincipalId string = ''
 
-var kvSecretsUserRoleId = '4633458b-17de-408a-b874-0445c86b69e0'
+var kvSecretsUserRoleId = '4633458b-17de-408a-b874-0445c86b69e6'
 
 resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
   name: keyVaultName
