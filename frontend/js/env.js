@@ -24,5 +24,5 @@
 
   // Direct Function App URL — SWA free tier does not proxy /api/* to external URLs.
   // The frontend calls the Function App directly; CORS is enabled on func-afdb-dev.
-  w.API_BASE = 'https://func-afdb-dev.azurewebsites.net';
+  w.API_BASE = 'https://func-afdb-dev.azurewebsites.net/api';
 })(window);
