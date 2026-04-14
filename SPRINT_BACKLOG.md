@@ -229,3 +229,113 @@ Build the web frontend on Azure Static Web Apps: landing page, MSAL login, regis
 
 #### 🎯 Sprint 4 Goal
 Deploy to Azure dev environment: provision resources via Bicep, configure Entra External ID, set GitHub secrets, and run a full end-to-end test from registration through job dashboard.
+
+---
+
+## Sprint 4 — Infrastructure & CI/CD + Full Dev Deployment ✅ COMPLETE
+
+**Goal**: All Azure resources live, API and SWA deployed to dev, Entra login working end-to-end, real user data in Cosmos DB.
+**Branch**: `dev`
+**Status**: COMPLETE
+
+### Deliverables Checklist
+
+| # | Task | Owner | Status | Notes |
+|---|------|-------|--------|-------|
+| S4-01 | All 8 Azure resources provisioned (`rg-afdb-dev`, australiacentral) | devops-sec | ✅ Done | Cosmos DB, Function App, SWA, Key Vault, Container Registry, Storage |
+| S4-02 | API live: `func-afdb-dev` GET /api/health returns 200 | devops-sec | ✅ Done | |
+| S4-03 | GET /api/jobs returns real scored results | backend-pipeline | ✅ Done | 43 AfDB jobs live |
+| S4-04 | GET /api/profile endpoint added and confirmed working | backend-pipeline | ✅ Done | Returns email, name, score_threshold, enabled_sources |
+| S4-05 | GET /api/sources returns 4 sources (afdb, worldbank, undp, imf) | backend-pipeline | ✅ Done | sources.yaml bundled in deploy zip |
+| S4-06 | Cosmos DB seeded: 43 real AfDB jobs + 43 evaluations migrated from DuckDB | backend-pipeline | ✅ Done | `scripts/migrate_duckdb_to_cosmos.py` |
+| S4-07 | SWA deployed at https://thankful-meadow-0f880790f.6.azurestaticapps.net | devops-sec | ✅ Done | Fully working |
+| S4-08 | Entra External ID tenant configured; MSAL login flow working end-to-end | devops-sec | ✅ Done | login → token → dashboard confirmed |
+| S4-09 | GitHub Actions CI/CD: deploy-swa.yml + deploy-api.yml green and auto-deploying | devops-sec | ✅ Done | Both pipelines green on push to DEV |
+| S4-10 | KV role assignment: Function App managed identity has Key Vault Secrets User role | devops-sec | ✅ Done | Manual assignment; secrets confirmed loading |
+| S4-11 | DEV_USER_ID + DEV_USER_EMAIL env vars so SKIP_AUTH=true uses real Cosmos DB user | backend-pipeline | ✅ Done | `api/auth.py` updated |
+| S4-12 | `scripts/backfill_empty_jobs.py`: recovered titles/locations for 8/10 empty-metadata jobs | backend-pipeline | ✅ Done | 2 jobs expired on AfDB site, show "Position Closed" |
+| S4-13 | `frontend/js/dashboard.js`: "Position Closed" fallback for expired jobs | web-frontend | ✅ Done | |
+| S4-14 | `frontend/js/env.js` (new): runtime Entra config injected before auth.js on every page | web-frontend | ✅ Done | |
+| S4-15 | MSAL CDN switched to jsDelivr; correct SRI hash; knownAuthorities + scope split | web-frontend | ✅ Done | Was silently failing with alcdn.msauth.net CDN |
+| S4-16 | `staticwebapp.config.json`: removed allowedRoles SWA route restrictions | web-frontend | ✅ Done | Conflicted with MSAL client-side auth |
+| S4-17 | `kv-roles.bicep` Bicep idempotency fix | devops-sec | ⏭ Deferred | Role works via manual assignment; carry to Sprint 5 |
+| S4-18 | `profile.js` → GET /api/profile pre-fill all fields on page load | web-frontend | ⏭ Deferred | Endpoint exists; save/update flow works; carry to Sprint 5 |
+
+---
+
+### Sprint 4 Review Summary — 2026-04-13
+
+#### Completed
+
+| Deliverable | What it does |
+|---|---|
+| All 8 Azure resources (rg-afdb-dev) | Cosmos DB, Function App, SWA, Key Vault, Container Registry, Storage all provisioned in australiacentral |
+| `func-afdb-dev` API | GET /api/health 200, GET /api/jobs (43 real jobs), GET /api/profile, GET /api/sources all live |
+| `scripts/migrate_duckdb_to_cosmos.py` | Migrated 43 real AfDB jobs + 43 evaluations from DuckDB into Cosmos DB |
+| `scripts/backfill_empty_jobs.py` | Recovered titles/locations for 8/10 jobs that had empty metadata from original DuckDB scrape |
+| SWA at https://thankful-meadow-0f880790f.6.azurestaticapps.net | Fully deployed and serving the dashboard, login, and profile pages |
+| Entra External ID MSAL login flow | Tenant configured, CIAM knownAuthorities set, LOGIN_SCOPES/TOKEN_SCOPES split; login → token → dashboard confirmed |
+| `frontend/js/env.js` | Runtime Entra config (clientId, tenantId, redirectUri) injected on every page; no build step required |
+| `api/auth.py` (DEV_USER_ID/DEV_USER_EMAIL) | SKIP_AUTH=true now authenticates against a real migrated Cosmos DB user instead of a synthetic stub |
+| GitHub Actions CI/CD (both pipelines green) | deploy-swa.yml and deploy-api.yml auto-deploy on push to DEV; tests gate API deploy |
+| KV role assignment (manual) | Function App managed identity confirmed reading secrets from kv-afdb-dev |
+| `frontend/js/dashboard.js` fallback | Jobs with unrecoverable titles display "Position Closed" instead of blank cards |
+| `staticwebapp.config.json` cleanup | Removed conflicting allowedRoles route guards; auth fully delegated to MSAL |
+
+#### What You Can Test Now
+
+| Thing to test | How |
+|---|---|
+| Legacy pipeline still works | `docker build -t afdb-tracker . && docker run --env-file .env afdb-tracker` |
+| Live API health check | `curl https://func-afdb-dev.azurewebsites.net/api/health` |
+| Live jobs endpoint | `curl "https://func-afdb-dev.azurewebsites.net/api/jobs" -H "x-skip-auth: true"` (dev mode) |
+| Live dashboard | Open https://thankful-meadow-0f880790f.6.azurestaticapps.net |
+| MSAL login flow | Click Sign In on the SWA landing page → Entra CIAM → redirect back to dashboard with real job data |
+| All unit tests | `pip install -r requirements.txt && python -m pytest tests/ -v` |
+
+#### Deferred
+
+| Item | Reason |
+|---|---|
+| `kv-roles.bicep` Bicep idempotency fix (role ID format) | Role assigned manually and working; Bicep fix is cosmetic for re-deploys. Carry to Sprint 6. |
+| `profile.js` → GET /api/profile pre-fill | Endpoint exists and tested; wiring the frontend call deferred. Save/update flow works. Carry to Sprint 6. |
+
+#### Next Sprint Goal
+Make the platform production-ready: deploy to `rg-afdb-prod`, automate the weekly pipeline in Container Apps Job, and add Application Insights alerting on pipeline failures.
+
+---
+
+## Sprint 5 — Production Readiness
+
+**Goal**: Production environment deployed, weekly pipeline automated, monitoring live.
+**Branch**: `dev`
+**Status**: PLANNED
+
+### Sprint 5 Task Table
+
+| # | Task | Owner | Priority | Notes |
+|---|------|-------|----------|-------|
+| S5-01 | Deploy Bicep to `rg-afdb-prod` (australiacentral) | devops-sec | P0 | Mirror dev resources; prod app settings from kv-afdb-prod secrets |
+| S5-02 | Entra External ID: create prod app registration + update redirect URIs to prod SWA URL | devops-sec | P0 | Prod tenant authority URL required for `env.js` in prod SWA |
+| S5-03 | GitHub Actions: add prod deploy jobs to `deploy-swa.yml` + `deploy-api.yml` (triggered on `main`) | devops-sec | P0 | dev branch deploys to dev; main branch deploys to prod |
+| S5-04 | Container Apps Job Bicep module: weekly cron trigger for `pipeline_v2.py` | devops-sec | P0 | Schedule: `0 6 * * 1` (Monday 06:00 UTC); image from ACR |
+| S5-05 | Build + push pipeline Docker image to ACR (`acr-afdb-dev`/`acr-afdb-prod`) | backend-pipeline | P0 | Dockerfile already exists; add ACR push step to CI |
+| S5-06 | Application Insights resource: create and wire to Function App + Container Apps Job | devops-sec | P1 | Add `APPLICATIONINSIGHTS_CONNECTION_STRING` to Key Vault; confirm traces appear |
+| S5-07 | Alert rule: email notification when Container Apps Job exits non-zero | devops-sec | P1 | Azure Monitor alert → action group → abdourahman03@gmail.com |
+| S5-08 | `kv-roles.bicep` Bicep idempotency fix (carried from Sprint 4) | devops-sec | P1 | Use `subscriptionResourceId('Microsoft.Authorization/roleDefinitions', ...)` form |
+| S5-09 | `profile.js` → wire GET /api/profile to pre-fill all profile fields on page load | web-frontend | P1 | Endpoint confirmed working; frontend call missing (carried from Sprint 4) |
+| S5-10 | Migrate prod Cosmos DB: run `migrate_duckdb_to_cosmos.py` against prod connection string | backend-pipeline | P1 | Seed prod DB with real historical job + evaluation data |
+| S5-11 | Smoke test prod end-to-end: login → dashboard shows jobs → profile loads → pipeline manual trigger | delivery-lead | P0 | Must pass before Sprint 5 is closed |
+| S5-12 | README.md: SaaS setup section (Bicep deploy, Entra config, GitHub secrets, first run) | delivery-lead | P2 | Audience: developer setting up a new environment |
+| S5-13 | Verify `cosmos_db.get_evaluated_job_ids_for_user()` called before every Gemini call (non-negotiable) | backend-pipeline | P0 | Required per ROADMAP non-negotiable before prod ships |
+
+### Sprint 5 Definition of Done
+
+- `rg-afdb-prod` deployed and all resources healthy
+- Weekly Container Apps Job runs successfully (manual trigger verified, cron confirmed)
+- Application Insights receiving traces from both Function App and pipeline job
+- Alert fires on pipeline failure (tested with a deliberate exit-code 1)
+- `profile.js` pre-fills all fields from GET /api/profile
+- `kv-roles.bicep` deploys idempotently with no diff warnings
+- README SaaS setup section covers full environment bootstrap in under 30 minutes
+- All existing tests still green (`python -m pytest tests/ -v`)
