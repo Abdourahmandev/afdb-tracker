@@ -32,7 +32,7 @@
       redirectUri: global.location && global.location.origin
                     ? global.location.origin + '/login.html'
                     : '',
-      postLogoutRedirectUri: global.location ? global.location.origin : '',
+      postLogoutRedirectUri: global.location ? global.location.origin + '/index.html' : '',
     },
     cache: {
       cacheLocation:           'sessionStorage',  // never localStorage
@@ -102,7 +102,7 @@
     if (!msalApp) throw new Error('MSAL not initialised.');
 
     const accounts = msalApp.getAllAccounts();
-    if (!accounts.length) return null;
+    if (!accounts.length) throw new Error('No authenticated account found. Please sign in.');
 
     const request = { scopes: TOKEN_SCOPES, account: accounts[0] };
 

@@ -3,22 +3,6 @@
     {
       "route": "/api/*",
       "rewrite": "https://func-afdb-dev.azurewebsites.net/api/*"
-    },
-    {
-      "route": "/dashboard",
-      "allowedRoles": ["authenticated"]
-    },
-    {
-      "route": "/dashboard.html",
-      "allowedRoles": ["authenticated"]
-    },
-    {
-      "route": "/profile",
-      "allowedRoles": ["authenticated"]
-    },
-    {
-      "route": "/profile.html",
-      "allowedRoles": ["authenticated"]
     }
   ],
   "navigationFallback": {

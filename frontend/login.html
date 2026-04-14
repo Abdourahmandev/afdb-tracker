@@ -26,6 +26,11 @@
   <script src="js/env.js"></script>
   <script src="js/auth.js"></script>
   <script>
+    // If already authenticated, skip redirect handling and go straight to dashboard
+    if (typeof Auth !== 'undefined' && Auth.getUser()) {
+      window.location.href = 'dashboard.html';
+    }
+
     (async function () {
       try {
         await Auth.handleRedirect();
