@@ -225,16 +225,16 @@ def main():
         print("*** DRY RUN — nothing will be written to Cosmos DB ***\n")
 
     # ── Migrate ───────────────────────────────────────────────────────────────
-    print("── Step 1: Jobs ──────────────────────────────────────────────────────")
+    print("-- Step 1: Jobs -------------------------------------------------------")
     migrate_jobs(conn, args.dry_run)
 
     if not args.jobs_only:
-        print("\n── Step 2: Evaluations ───────────────────────────────────────────────")
+        print("\n-- Step 2: Evaluations ------------------------------------------------")
         migrate_evaluations(conn, user_id, args.dry_run)
 
     conn.close()
 
-    print("\n✓ Migration complete.")
+    print("\nDone. Migration complete.")
     if not args.dry_run and not args.jobs_only:
         print(
             f"\nNext step: run the pipeline — it will now skip all {eval_count} "

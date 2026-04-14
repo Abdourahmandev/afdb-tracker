@@ -87,8 +87,10 @@ async def get_current_user(
     """
     if SKIP_AUTH:
         logger.warning("SKIP_AUTH=true — using mock dev user. Never use in production.")
+        user_id = os.environ.get("DEV_USER_ID", "dev-user-001")
         return {
-            "sub": "dev-user-001",
+            "sub": user_id,
+            "id":  user_id,
             "email": os.environ.get("DEV_USER_EMAIL", "dev@localhost"),
             "name": "Dev User",
         }
