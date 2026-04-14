@@ -93,7 +93,7 @@
       return `
 <article class="job-card" data-source="${escapeHtml(job.source_id)}">
   <div class="job-card-header">
-    <h3 class="job-title">${escapeHtml(job.title)}</h3>
+    <h3 class="job-title">${job.title ? escapeHtml(job.title) : '<span style="color:var(--gray-400);font-style:italic">Position Closed</span>'}</h3>
   </div>
   <div class="job-badges">
     <span class="badge ${srcClass}">${escapeHtml(srcLabel)}</span>
