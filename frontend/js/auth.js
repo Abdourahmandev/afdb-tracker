@@ -40,7 +40,12 @@
     },
   };
 
-  const SCOPES = global.ENTRA_SCOPES
+  // LOGIN_SCOPES: used for the initial loginRedirect — must be OIDC only for CIAM.
+  // Passing API scopes here causes a 401 from the Entra External ID authorize endpoint.
+  const LOGIN_SCOPES = ['openid', 'profile', 'email'];
+
+  // TOKEN_SCOPES: used for acquireTokenSilent after login to get an API access token.
+  const TOKEN_SCOPES = global.ENTRA_SCOPES
     ? global.ENTRA_SCOPES.split(',')
     : ['openid', 'profile', 'email'];
 
@@ -99,7 +104,7 @@
     const accounts = msalApp.getAllAccounts();
     if (!accounts.length) return null;
 
-    const request = { scopes: SCOPES, account: accounts[0] };
+    const request = { scopes: TOKEN_SCOPES, account: accounts[0] };
 
     try {
       const result = await msalApp.acquireTokenSilent(request);
@@ -123,7 +128,7 @@
     const msalApp = getMsalInstance();
     if (!msalApp) return;
     try {
-      await msalApp.loginRedirect({ scopes: SCOPES });
+      await msalApp.loginRedirect({ scopes: LOGIN_SCOPES });
     } catch (err) {
       console.error('auth.js: loginRedirect failed:', err);
       alert('Sign-in could not start: ' + err.message);
