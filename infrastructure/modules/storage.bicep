@@ -6,11 +6,8 @@ param environment string
 param location string
 param tags object
 
-// For dev, use a new account; for prod, the existing account name is used
-// to avoid breaking the live dashboard URL
-var storageAccountName = environment == 'prod'
-  ? 'afdbtracker4990'       // Existing production storage account
-  : 'stafdb${environment}${uniqueString(resourceGroup().id)}'
+// Globally unique name per environment — 24 char max, lowercase alphanumeric only
+var storageAccountName = 'stafdb${environment}${take(uniqueString(resourceGroup().id), 8)}'
 
 resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' = {
   name: take(storageAccountName, 24)

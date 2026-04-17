@@ -53,9 +53,10 @@ resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
 // F1 (Free/Shared) requires no VM quota — suitable for dev/testing.
 // Switch to Y1 (Consumption) or B1 (Basic) once quota is granted at:
 // portal.azure.com → Subscriptions → Usage + Quotas → request increase.
-var planSku = environment == 'dev'
-  ? { name: 'B1', tier: 'Basic' }
-  : { name: 'Y1', tier: 'Dynamic' }
+// B1 Basic for all environments — Y1 Consumption requires Dynamic VMs quota which
+// is zero in this subscription. Request increase at portal.azure.com → Subscriptions →
+// Usage + Quotas if scale-to-zero billing is needed in future.
+var planSku = { name: 'B1', tier: 'Basic' }
 
 resource hostingPlan 'Microsoft.Web/serverfarms@2023-12-01' = {
   name: hostingPlanName

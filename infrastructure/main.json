@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.42.1.51946",
-      "templateHash": "12283498923196170865"
+      "templateHash": "15167240517400650297"
     }
   },
   "parameters": {
@@ -535,7 +535,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.42.1.51946",
-              "templateHash": "10182217155921585524"
+              "templateHash": "9731071581799237054"
             }
           },
           "parameters": {
@@ -553,7 +553,7 @@
             }
           },
           "variables": {
-            "storageAccountName": "[if(equals(parameters('environment'), 'prod'), 'afdbtracker4990', format('stafdb{0}{1}', parameters('environment'), uniqueString(resourceGroup().id)))]"
+            "storageAccountName": "[format('stafdb{0}{1}', parameters('environment'), take(uniqueString(resourceGroup().id), 8))]"
           },
           "resources": [
             {
@@ -762,7 +762,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.42.1.51946",
-              "templateHash": "9032856124527171686"
+              "templateHash": "10367462107003913686"
             }
           },
           "parameters": {
@@ -793,7 +793,10 @@
             "hostingPlanName": "[format('asp-{0}-{1}', parameters('prefix'), parameters('environment'))]",
             "functionsAppName": "[format('func-{0}-{1}', parameters('prefix'), parameters('environment'))]",
             "appInsightsName": "[format('appi-{0}-{1}', parameters('prefix'), parameters('environment'))]",
-            "planSku": "[if(equals(parameters('environment'), 'dev'), createObject('name', 'B1', 'tier', 'Basic'), createObject('name', 'Y1', 'tier', 'Dynamic'))]"
+            "planSku": {
+              "name": "B1",
+              "tier": "Basic"
+            }
           },
           "resources": [
             {
@@ -1023,7 +1026,7 @@
             "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}-{1}', variables('prefix'), parameters('environment'))), 'Microsoft.Resources/deployments', 'deploy-functions'), '2025-04-01').outputs.principalId.value]"
           },
           "scraperPrincipalId": {
-            "value": "[coalesce(tryGet(if(equals(parameters('environment'), 'prod'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}-{1}', variables('prefix'), parameters('environment'))), 'Microsoft.Resources/deployments', 'deploy-scraper-job'), '2025-04-01'), null()), 'outputs', 'principalId', 'value'), '')]"
+            "value": "[coalesce(tryGet(if(and(equals(parameters('environment'), 'prod'), not(empty(parameters('scraperImageTag')))), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}-{1}', variables('prefix'), parameters('environment'))), 'Microsoft.Resources/deployments', 'deploy-scraper-job'), '2025-04-01'), null()), 'outputs', 'principalId', 'value'), '')]"
           }
         },
         "template": {
@@ -1089,7 +1092,7 @@
       ]
     },
     {
-      "condition": "[equals(parameters('environment'), 'prod')]",
+      "condition": "[and(equals(parameters('environment'), 'prod'), not(empty(parameters('scraperImageTag'))))]",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
       "name": "deploy-scraper-job",
@@ -1309,7 +1312,7 @@
       ]
     },
     {
-      "condition": "[equals(parameters('environment'), 'prod')]",
+      "condition": "[and(equals(parameters('environment'), 'prod'), not(empty(parameters('scraperImageTag'))))]",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
       "name": "deploy-pipeline-alert",
@@ -1326,6 +1329,9 @@
           "environment": {
             "value": "[parameters('environment')]"
           },
+          "location": {
+            "value": "[parameters('location')]"
+          },
           "tags": {
             "value": "[variables('tags')]"
           },
@@ -1333,10 +1339,10 @@
             "value": "[parameters('alertEmail')]"
           },
           "logAnalyticsWorkspaceId": {
-            "value": "[coalesce(tryGet(if(equals(parameters('environment'), 'prod'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}-{1}', variables('prefix'), parameters('environment'))), 'Microsoft.Resources/deployments', 'deploy-scraper-job'), '2025-04-01'), null()), 'outputs', 'logAnalyticsWorkspaceId', 'value'), '')]"
+            "value": "[coalesce(tryGet(if(and(equals(parameters('environment'), 'prod'), not(empty(parameters('scraperImageTag')))), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}-{1}', variables('prefix'), parameters('environment'))), 'Microsoft.Resources/deployments', 'deploy-scraper-job'), '2025-04-01'), null()), 'outputs', 'logAnalyticsWorkspaceId', 'value'), '')]"
           },
           "containerAppJobName": {
-            "value": "[coalesce(tryGet(if(equals(parameters('environment'), 'prod'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}-{1}', variables('prefix'), parameters('environment'))), 'Microsoft.Resources/deployments', 'deploy-scraper-job'), '2025-04-01'), null()), 'outputs', 'jobName', 'value'), '')]"
+            "value": "[coalesce(tryGet(if(and(equals(parameters('environment'), 'prod'), not(empty(parameters('scraperImageTag')))), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}-{1}', variables('prefix'), parameters('environment'))), 'Microsoft.Resources/deployments', 'deploy-scraper-job'), '2025-04-01'), null()), 'outputs', 'jobName', 'value'), '')]"
           }
         },
         "template": {
@@ -1346,7 +1352,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.42.1.51946",
-              "templateHash": "153643634406474925"
+              "templateHash": "11111694087611105327"
             }
           },
           "parameters": {
@@ -1354,6 +1360,9 @@
               "type": "string"
             },
             "environment": {
+              "type": "string"
+            },
+            "location": {
               "type": "string"
             },
             "tags": {
@@ -1395,7 +1404,7 @@
               "type": "Microsoft.Insights/scheduledQueryRules",
               "apiVersion": "2022-06-15",
               "name": "[format('alert-pipeline-{0}-failure', parameters('environment'))]",
-              "location": "australiacentral",
+              "location": "[parameters('location')]",
               "tags": "[parameters('tags')]",
               "properties": {
                 "displayName": "[format('[{0}] Pipeline Job Failure', parameters('environment'))]",

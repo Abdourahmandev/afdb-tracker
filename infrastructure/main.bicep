@@ -152,7 +152,9 @@ module kvRoles 'modules/kv-roles.bicep' = {
 
 // ─── Container Apps Job + Alert (prod only) ───────────────────────────────────
 
-module scraperJob 'modules/containerapp-job.bicep' = if (environment == 'prod') {
+// Deploy Container Apps Job only when a Docker image has been built and pushed to ACR.
+// On first prod deployment scraperImageTag is empty — run Bicep again after pipeline image exists.
+module scraperJob 'modules/containerapp-job.bicep' = if (environment == 'prod' && !empty(scraperImageTag)) {
   name: 'deploy-scraper-job'
   scope: rg
   params: {
@@ -168,12 +170,13 @@ module scraperJob 'modules/containerapp-job.bicep' = if (environment == 'prod') 
   }
 }
 
-module pipelineAlert 'modules/alertrule.bicep' = if (environment == 'prod') {
+module pipelineAlert 'modules/alertrule.bicep' = if (environment == 'prod' && !empty(scraperImageTag)) {
   name: 'deploy-pipeline-alert'
   scope: rg
   params: {
     prefix: prefix
     environment: environment
+    location: location
     tags: tags
     alertEmail: alertEmail
     logAnalyticsWorkspaceId: scraperJob.?outputs.logAnalyticsWorkspaceId ?? ''

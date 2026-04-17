@@ -4,6 +4,7 @@
 
 param prefix string
 param environment string
+param location string
 param tags object
 param alertEmail string
 param logAnalyticsWorkspaceId string
@@ -36,7 +37,7 @@ var failureQuery = 'ContainerAppSystemLogs_CL | where ContainerAppName_s == "${c
 
 resource pipelineFailureAlert 'Microsoft.Insights/scheduledQueryRules@2022-06-15' = {
   name: 'alert-pipeline-${environment}-failure'
-  location: 'australiacentral'
+  location: location
   tags: tags
   properties: {
     displayName: '[${environment}] Pipeline Job Failure'
