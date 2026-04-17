@@ -21,7 +21,7 @@
       "value": ""
     },
     "scraperImageTag": {
-      "value": "acrafdbprod.azurecr.io/pipeline-afdb:latest"
+      "value": ""
     }
   }
 }

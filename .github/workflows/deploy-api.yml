@@ -91,7 +91,7 @@ jobs:
     needs: [test]
 
     env:
-      FUNCTION_APP_NAME: ${{ github.ref_name == 'main' && 'func-afdb-prod' || vars.AZURE_FUNCTION_APP_NAME }}
+      FUNCTION_APP_NAME: ${{ github.ref_name == 'main' && vars.AZURE_FUNCTION_APP_NAME_PROD || vars.AZURE_FUNCTION_APP_NAME }}
       RESOURCE_GROUP: ${{ github.ref_name == 'main' && 'rg-afdb-prod' || 'rg-afdb-dev' }}
 
     steps:

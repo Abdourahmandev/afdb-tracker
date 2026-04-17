@@ -234,3 +234,169 @@ data/                       ← mounted from Azure Files share (afdb-data)
 - [Playwright Python docs](https://playwright.dev/python/docs/intro)
 - [Python `schedule` library](https://schedule.readthedocs.io/)
 - [DuckDB Python docs](https://duckdb.org/docs/api/python/overview)
+
+---
+
+## SaaS Platform Setup (Multi-Tenant)
+
+> This section covers bootstrapping a fresh **AfDB-Platform** environment (dev or prod) from scratch.
+> The legacy single-user pipeline above remains fully functional — `LEGACY_MODE=true` preserves it.
+
+### Architecture
+
+```
+[Weekly Container Apps Job]  ← pipeline_v2.py + Playwright scraper
+        ↓
+[Azure Cosmos DB — NoSQL]    ← jobs | users | evaluations (free tier)
+        ↓
+[Azure Functions — FastAPI]  ← /register /verify /jobs /profile /sources
+        ↓
+[Azure Static Web Apps]      ← dashboard | profile | signup (vanilla JS)
+        ↓
+[Microsoft Entra External ID] ← MSAL.js SPA auth
+```
+
+### Prerequisites
+
+- Azure CLI `az` (v2.50+) — `az login` before starting
+- Bicep CLI — installed automatically by `az bicep build`
+- GitHub CLI `gh` — for setting Actions secrets
+- Python 3.11+ and `pip`
+- A Gmail account with an App Password for notification emails
+- A Google Gemini API key (free tier works)
+- A Microsoft Entra External ID tenant (free) — see `docs/entra-setup.md`
+
+### Step 1 — Deploy Azure Infrastructure
+
+```bash
+# Dev environment (australiacentral, B1 Function App, Cosmos DB free tier)
+az deployment sub create \
+  --location australiacentral \
+  --template-file infrastructure/main.bicep \
+  --parameters infrastructure/main.parameters.dev.json \
+  --parameters entraExternalTenantId="<your-tenant-id>" entraClientId="<your-client-id>"
+
+# Prod environment (same region — scraperImageTag left empty on first deploy)
+az deployment sub create \
+  --location australiacentral \
+  --template-file infrastructure/main.bicep \
+  --parameters infrastructure/main.parameters.prod.json \
+  --parameters entraExternalTenantId="<your-tenant-id>" entraClientId="<your-client-id>"
+```
+
+Outputs: `resourceGroupName`, `functionsUrl`, `staticWebAppUrl`, `keyVaultName`.
+
+### Step 2 — Seed Key Vault Secrets
+
+```bash
+# Assign yourself KV Secrets Officer first
+KV_NAME=kv-afdb-dev   # or kv-afdb-prod
+MY_ID=$(az ad signed-in-user show --query id -o tsv)
+az role assignment create --role "Key Vault Secrets Officer" \
+  --assignee "$MY_ID" --scope "$(az keyvault show --name $KV_NAME --query id -o tsv)"
+
+# Set secrets
+az keyvault secret set --vault-name $KV_NAME --name gemini-api-key    --value "<key>"
+az keyvault secret set --vault-name $KV_NAME --name gmail-app-password --value "<password>"
+az keyvault secret set --vault-name $KV_NAME --name gmail-user         --value "<email>"
+az keyvault secret set --vault-name $KV_NAME --name EntraExternalTenantId --value "<tenant-id>"
+az keyvault secret set --vault-name $KV_NAME --name EntraApiClientId   --value "<client-id>"
+```
+
+### Step 3 — Configure Function App
+
+```bash
+FUNC_NAME=func-afdb-dev   # or func-afdb-prod
+RG=rg-afdb-dev            # or rg-afdb-prod
+COSMOS_ENDPOINT=$(az cosmosdb show --name cosmos-afdb-dev --resource-group $RG \
+  --query documentEndpoint -o tsv)
+
+az functionapp config appsettings set --name $FUNC_NAME --resource-group $RG --settings \
+  "GEMINI_API_KEY=@Microsoft.KeyVault(VaultName=${KV_NAME};SecretName=gemini-api-key)" \
+  "GMAIL_APP_PASSWORD=@Microsoft.KeyVault(VaultName=${KV_NAME};SecretName=gmail-app-password)" \
+  "GMAIL_USER=@Microsoft.KeyVault(VaultName=${KV_NAME};SecretName=gmail-user)" \
+  "COSMOS_ENDPOINT=$COSMOS_ENDPOINT" \
+  "COSMOS_DATABASE=afdb-platform" \
+  "SKIP_AUTH=false"
+
+# Enable Always On (required for B1 plan — prevents cold-start timeouts)
+az functionapp config set --name $FUNC_NAME --resource-group $RG --always-on true
+```
+
+### Step 4 — Assign Cosmos DB Data Contributor Role
+
+```bash
+FUNC_IDENTITY=$(az functionapp identity show --name $FUNC_NAME --resource-group $RG \
+  --query principalId -o tsv)
+COSMOS_ID=$(az cosmosdb show --name cosmos-afdb-dev --resource-group $RG --query id -o tsv)
+
+MSYS_NO_PATHCONV=1 az cosmosdb sql role assignment create \
+  --account-name cosmos-afdb-dev --resource-group $RG \
+  --role-definition-id "00000000-0000-0000-0000-000000000002" \
+  --principal-id "$FUNC_IDENTITY" --scope "$COSMOS_ID"
+```
+
+### Step 5 — Deploy API
+
+```bash
+zip -r func-deploy.zip function_app.py host.json requirements.txt api/ src/ scrapers/config/
+az functionapp stop  --name $FUNC_NAME --resource-group $RG
+az functionapp deployment source config-zip --name $FUNC_NAME --resource-group $RG \
+  --src func-deploy.zip --build-remote true --timeout 300
+az functionapp start --name $FUNC_NAME --resource-group $RG
+
+# Verify
+curl https://${FUNC_NAME}.azurewebsites.net/api/health
+# → {"status":"ok","version":"0.2.0"}
+```
+
+### Step 6 — Seed Cosmos DB
+
+```bash
+# Migrate 43 historical jobs + evaluations from local DuckDB → Cosmos DB
+COSMOS_CONN="AccountEndpoint=<endpoint>;AccountKey=<key>;"
+COSMOS_CONNECTION_STRING="$COSMOS_CONN" COSMOS_DATABASE="afdb-platform" \
+  python scripts/migrate_duckdb_to_cosmos.py --jobs-only
+
+# Then migrate evaluations once a user is registered:
+COSMOS_CONNECTION_STRING="$COSMOS_CONN" COSMOS_DATABASE="afdb-platform" \
+  python scripts/migrate_duckdb_to_cosmos.py --email your@email.com
+```
+
+### Step 7 — Set GitHub Actions Secrets
+
+```bash
+# SWA deployment tokens
+gh secret set AZURE_STATIC_WEB_APPS_API_TOKEN_DEV  \
+  --body "$(az staticwebapp secrets list --name swa-afdb-dev  --query 'properties.apiKey' -o tsv)"
+gh secret set AZURE_STATIC_WEB_APPS_API_TOKEN_PROD \
+  --body "$(az staticwebapp secrets list --name swa-afdb-prod --query 'properties.apiKey' -o tsv)"
+
+# Azure credentials (service principal JSON)
+gh secret set AZURE_CREDENTIALS --body "$(cat azure-sp.json)"
+
+# Function App names
+gh variable set AZURE_FUNCTION_APP_NAME      --body "func-afdb-dev"
+gh variable set AZURE_FUNCTION_APP_NAME_PROD --body "func-afdb-prod"
+```
+
+After setting secrets, push to `DEV` → deploys to dev. Push/merge to `main` → deploys to prod.
+
+### Step 8 — Entra External ID
+
+Follow `docs/entra-setup.md` for the one-time tenant + app registration steps.
+Key URLs needed in `frontend/js/env.js`:
+- `ENTRA_TENANT_ID` — from Azure Portal → Entra External ID tenant → Overview
+- `ENTRA_CLIENT_ID` — from the SPA app registration → Overview
+
+### SaaS Resource Summary
+
+| Resource | Dev name | Prod name | Cost |
+|---|---|---|---|
+| Resource Group | `rg-afdb-dev` | `rg-afdb-prod` | free |
+| Cosmos DB (NoSQL) | `cosmos-afdb-dev` | `cosmos-afdb-prod` | free tier |
+| Key Vault | `kv-afdb-dev` | `kv-afdb-prod` | ~$0 |
+| App Service Plan (B1) | `asp-afdb-dev` | `asp-afdb-prod` | ~$13/mo |
+| Function App | `func-afdb-dev` | `func-afdb-prod` | included in B1 |
+| Static Web App | `swa-afdb-dev` | `swa-afdb-prod` | free |
+| Container Registry | `acrafdbdev` | `acrafdbprod` | ~$5/mo (when used) |
