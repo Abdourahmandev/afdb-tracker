@@ -38,6 +38,12 @@ param entraClientId string = ''
 @description('Region for Azure Static Web Apps (must be one of: westus2, centralus, eastus2, westeurope, eastasia)')
 param swaLocation string = 'eastus2'
 
+@description('Container image tag for the pipeline job (e.g. acrafdbprod.azurecr.io/pipeline-afdb:latest). Required when environment=prod.')
+param scraperImageTag string = ''
+
+@description('Email address for pipeline failure alerts. Required when environment=prod.')
+param alertEmail string = 'abdourahman03@gmail.com'
+
 // ─── Variables ────────────────────────────────────────────────────────────────
 
 var prefix = 'afdb'
@@ -133,12 +139,45 @@ module cosmosRoles 'modules/cosmos-roles.bicep' = {
 }
 
 // Key Vault Secrets User: Functions → read secrets at runtime
+// Also grants the Container Apps Job managed identity access when deployed (prod only)
 module kvRoles 'modules/kv-roles.bicep' = {
   name: 'deploy-kv-roles'
   scope: rg
   params: {
     keyVaultName: keyVault.outputs.keyVaultName
     functionsPrincipalId: functions.outputs.principalId
+    scraperPrincipalId: scraperJob.?outputs.principalId ?? ''
+  }
+}
+
+// ─── Container Apps Job + Alert (prod only) ───────────────────────────────────
+
+module scraperJob 'modules/containerapp-job.bicep' = if (environment == 'prod') {
+  name: 'deploy-scraper-job'
+  scope: rg
+  params: {
+    prefix: prefix
+    environment: environment
+    location: location
+    tags: tags
+    scraperImageTag: scraperImageTag
+    cosmosDbEndpoint: cosmosDb.outputs.endpoint
+    cosmosDbDatabaseName: cosmosDb.outputs.databaseName
+    storageAccountName: 'st${prefix}${environment}'
+    keyVaultName: keyVault.outputs.keyVaultName
+  }
+}
+
+module pipelineAlert 'modules/alertrule.bicep' = if (environment == 'prod') {
+  name: 'deploy-pipeline-alert'
+  scope: rg
+  params: {
+    prefix: prefix
+    environment: environment
+    tags: tags
+    alertEmail: alertEmail
+    logAnalyticsWorkspaceId: scraperJob.?outputs.logAnalyticsWorkspaceId ?? ''
+    containerAppJobName: scraperJob.?outputs.jobName ?? ''
   }
 }
 

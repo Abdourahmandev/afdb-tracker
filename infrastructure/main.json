@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.42.1.51946",
-      "templateHash": "6587840967664737874"
+      "templateHash": "12283498923196170865"
     }
   },
   "parameters": {
@@ -60,6 +60,20 @@
       "defaultValue": "eastus2",
       "metadata": {
         "description": "Region for Azure Static Web Apps (must be one of: westus2, centralus, eastus2, westeurope, eastasia)"
+      }
+    },
+    "scraperImageTag": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Container image tag for the pipeline job (e.g. acrafdbprod.azurecr.io/pipeline-afdb:latest). Required when environment=prod."
+      }
+    },
+    "alertEmail": {
+      "type": "string",
+      "defaultValue": "abdourahman03@gmail.com",
+      "metadata": {
+        "description": "Email address for pipeline failure alerts. Required when environment=prod."
       }
     }
   },
@@ -1007,6 +1021,9 @@
           },
           "functionsPrincipalId": {
             "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}-{1}', variables('prefix'), parameters('environment'))), 'Microsoft.Resources/deployments', 'deploy-functions'), '2025-04-01').outputs.principalId.value]"
+          },
+          "scraperPrincipalId": {
+            "value": "[coalesce(tryGet(if(equals(parameters('environment'), 'prod'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}-{1}', variables('prefix'), parameters('environment'))), 'Microsoft.Resources/deployments', 'deploy-scraper-job'), '2025-04-01'), null()), 'outputs', 'principalId', 'value'), '')]"
           }
         },
         "template": {
@@ -1016,7 +1033,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.42.1.51946",
-              "templateHash": "4171220748006133727"
+              "templateHash": "15514843273131510576"
             }
           },
           "parameters": {
@@ -1035,7 +1052,7 @@
             }
           },
           "variables": {
-            "kvSecretsUserRoleId": "4633458b-17de-408a-b874-0445c86b69e0"
+            "kvSecretsUserRoleId": "4633458b-17de-408a-b874-0445c86b69e6"
           },
           "resources": [
             {
@@ -1067,7 +1084,369 @@
       "dependsOn": [
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}-{1}', variables('prefix'), parameters('environment'))), 'Microsoft.Resources/deployments', 'deploy-functions')]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}-{1}', variables('prefix'), parameters('environment'))), 'Microsoft.Resources/deployments', 'deploy-keyvault')]",
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', format('rg-{0}-{1}', variables('prefix'), parameters('environment')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}-{1}', variables('prefix'), parameters('environment'))), 'Microsoft.Resources/deployments', 'deploy-scraper-job')]"
+      ]
+    },
+    {
+      "condition": "[equals(parameters('environment'), 'prod')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "deploy-scraper-job",
+      "resourceGroup": "[format('rg-{0}-{1}', variables('prefix'), parameters('environment'))]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "prefix": {
+            "value": "[variables('prefix')]"
+          },
+          "environment": {
+            "value": "[parameters('environment')]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "tags": {
+            "value": "[variables('tags')]"
+          },
+          "scraperImageTag": {
+            "value": "[parameters('scraperImageTag')]"
+          },
+          "cosmosDbEndpoint": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}-{1}', variables('prefix'), parameters('environment'))), 'Microsoft.Resources/deployments', 'deploy-cosmosdb'), '2025-04-01').outputs.endpoint.value]"
+          },
+          "cosmosDbDatabaseName": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}-{1}', variables('prefix'), parameters('environment'))), 'Microsoft.Resources/deployments', 'deploy-cosmosdb'), '2025-04-01').outputs.databaseName.value]"
+          },
+          "storageAccountName": {
+            "value": "[format('st{0}{1}', variables('prefix'), parameters('environment'))]"
+          },
+          "keyVaultName": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}-{1}', variables('prefix'), parameters('environment'))), 'Microsoft.Resources/deployments', 'deploy-keyvault'), '2025-04-01').outputs.keyVaultName.value]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.42.1.51946",
+              "templateHash": "10882583790006224533"
+            }
+          },
+          "parameters": {
+            "prefix": {
+              "type": "string"
+            },
+            "environment": {
+              "type": "string"
+            },
+            "location": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "object"
+            },
+            "scraperImageTag": {
+              "type": "string"
+            },
+            "cosmosDbEndpoint": {
+              "type": "string"
+            },
+            "cosmosDbDatabaseName": {
+              "type": "string"
+            },
+            "storageAccountName": {
+              "type": "string"
+            },
+            "keyVaultName": {
+              "type": "string"
+            }
+          },
+          "variables": {
+            "appEnvName": "[format('cae-{0}-{1}', parameters('prefix'), parameters('environment'))]",
+            "jobName": "[format('ca-job-{0}-{1}', parameters('prefix'), parameters('environment'))]",
+            "keyVaultUrl": "[format('https://{0}{1}', parameters('keyVaultName'), environment().suffixes.keyvaultDns)]"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.OperationalInsights/workspaces",
+              "apiVersion": "2023-09-01",
+              "name": "[format('log-{0}-{1}', parameters('prefix'), parameters('environment'))]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "sku": {
+                  "name": "PerGB2018"
+                },
+                "retentionInDays": 30
+              }
+            },
+            {
+              "type": "Microsoft.App/managedEnvironments",
+              "apiVersion": "2024-03-01",
+              "name": "[variables('appEnvName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "appLogsConfiguration": {
+                  "destination": "log-analytics",
+                  "logAnalyticsConfiguration": {
+                    "customerId": "[reference(resourceId('Microsoft.OperationalInsights/workspaces', format('log-{0}-{1}', parameters('prefix'), parameters('environment'))), '2023-09-01').customerId]",
+                    "sharedKey": "[listKeys(resourceId('Microsoft.OperationalInsights/workspaces', format('log-{0}-{1}', parameters('prefix'), parameters('environment'))), '2023-09-01').primarySharedKey]"
+                  }
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.OperationalInsights/workspaces', format('log-{0}-{1}', parameters('prefix'), parameters('environment')))]"
+              ]
+            },
+            {
+              "type": "Microsoft.App/jobs",
+              "apiVersion": "2024-03-01",
+              "name": "[variables('jobName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "identity": {
+                "type": "SystemAssigned"
+              },
+              "properties": {
+                "environmentId": "[resourceId('Microsoft.App/managedEnvironments', variables('appEnvName'))]",
+                "configuration": {
+                  "triggerType": "Schedule",
+                  "replicaTimeout": 1800,
+                  "replicaRetryLimit": 1,
+                  "scheduleTriggerConfig": {
+                    "cronExpression": "0 6 * * 1",
+                    "parallelism": 1,
+                    "replicaCompletionCount": 1
+                  },
+                  "secrets": [
+                    {
+                      "name": "gemini-api-key",
+                      "keyVaultUrl": "[format('{0}/secrets/gemini-api-key', variables('keyVaultUrl'))]",
+                      "identity": "system"
+                    },
+                    {
+                      "name": "gmail-app-password",
+                      "keyVaultUrl": "[format('{0}/secrets/gmail-app-password', variables('keyVaultUrl'))]",
+                      "identity": "system"
+                    }
+                  ]
+                },
+                "template": {
+                  "containers": [
+                    {
+                      "name": "scraper",
+                      "image": "[parameters('scraperImageTag')]",
+                      "resources": {
+                        "cpu": "[json('1.0')]",
+                        "memory": "2Gi"
+                      },
+                      "env": [
+                        {
+                          "name": "LEGACY_MODE",
+                          "value": "false"
+                        },
+                        {
+                          "name": "COSMOS_ENDPOINT",
+                          "value": "[parameters('cosmosDbEndpoint')]"
+                        },
+                        {
+                          "name": "COSMOS_DATABASE",
+                          "value": "[parameters('cosmosDbDatabaseName')]"
+                        },
+                        {
+                          "name": "STORAGE_ACCOUNT_NAME",
+                          "value": "[parameters('storageAccountName')]"
+                        },
+                        {
+                          "name": "GEMINI_API_KEY",
+                          "secretRef": "gemini-api-key"
+                        },
+                        {
+                          "name": "GMAIL_APP_PASSWORD",
+                          "secretRef": "gmail-app-password"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.App/managedEnvironments', variables('appEnvName'))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "jobName": {
+              "type": "string",
+              "value": "[variables('jobName')]"
+            },
+            "principalId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.App/jobs', variables('jobName')), '2024-03-01', 'full').identity.principalId]"
+            },
+            "containerAppsEnvId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.App/managedEnvironments', variables('appEnvName'))]"
+            },
+            "logAnalyticsWorkspaceId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.OperationalInsights/workspaces', format('log-{0}-{1}', parameters('prefix'), parameters('environment')))]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}-{1}', variables('prefix'), parameters('environment'))), 'Microsoft.Resources/deployments', 'deploy-cosmosdb')]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}-{1}', variables('prefix'), parameters('environment'))), 'Microsoft.Resources/deployments', 'deploy-keyvault')]",
         "[subscriptionResourceId('Microsoft.Resources/resourceGroups', format('rg-{0}-{1}', variables('prefix'), parameters('environment')))]"
+      ]
+    },
+    {
+      "condition": "[equals(parameters('environment'), 'prod')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "deploy-pipeline-alert",
+      "resourceGroup": "[format('rg-{0}-{1}', variables('prefix'), parameters('environment'))]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "prefix": {
+            "value": "[variables('prefix')]"
+          },
+          "environment": {
+            "value": "[parameters('environment')]"
+          },
+          "tags": {
+            "value": "[variables('tags')]"
+          },
+          "alertEmail": {
+            "value": "[parameters('alertEmail')]"
+          },
+          "logAnalyticsWorkspaceId": {
+            "value": "[coalesce(tryGet(if(equals(parameters('environment'), 'prod'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}-{1}', variables('prefix'), parameters('environment'))), 'Microsoft.Resources/deployments', 'deploy-scraper-job'), '2025-04-01'), null()), 'outputs', 'logAnalyticsWorkspaceId', 'value'), '')]"
+          },
+          "containerAppJobName": {
+            "value": "[coalesce(tryGet(if(equals(parameters('environment'), 'prod'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}-{1}', variables('prefix'), parameters('environment'))), 'Microsoft.Resources/deployments', 'deploy-scraper-job'), '2025-04-01'), null()), 'outputs', 'jobName', 'value'), '')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.42.1.51946",
+              "templateHash": "153643634406474925"
+            }
+          },
+          "parameters": {
+            "prefix": {
+              "type": "string"
+            },
+            "environment": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "object"
+            },
+            "alertEmail": {
+              "type": "string"
+            },
+            "logAnalyticsWorkspaceId": {
+              "type": "string"
+            },
+            "containerAppJobName": {
+              "type": "string"
+            }
+          },
+          "variables": {
+            "failureQuery": "[format('ContainerAppSystemLogs_CL | where ContainerAppName_s == \"{0}\" | where Log_s contains \"error\" or Log_s contains \"exception\" or Log_s contains \"failed\" | where TimeGenerated > ago(1h) | count', parameters('containerAppJobName'))]"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Insights/actionGroups",
+              "apiVersion": "2023-01-01",
+              "name": "[format('ag-{0}-{1}-pipeline', parameters('prefix'), parameters('environment'))]",
+              "location": "global",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "groupShortName": "pipeline",
+                "enabled": true,
+                "emailReceivers": [
+                  {
+                    "name": "pipeline-alert-email",
+                    "emailAddress": "[parameters('alertEmail')]",
+                    "useCommonAlertSchema": true
+                  }
+                ]
+              }
+            },
+            {
+              "type": "Microsoft.Insights/scheduledQueryRules",
+              "apiVersion": "2022-06-15",
+              "name": "[format('alert-pipeline-{0}-failure', parameters('environment'))]",
+              "location": "australiacentral",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "displayName": "[format('[{0}] Pipeline Job Failure', parameters('environment'))]",
+                "description": "Fires when the weekly scraper job logs an error or exception",
+                "enabled": true,
+                "scopes": [
+                  "[parameters('logAnalyticsWorkspaceId')]"
+                ],
+                "evaluationFrequency": "PT1H",
+                "windowSize": "PT1H",
+                "severity": 2,
+                "criteria": {
+                  "allOf": [
+                    {
+                      "query": "[variables('failureQuery')]",
+                      "timeAggregation": "Count",
+                      "operator": "GreaterThan",
+                      "threshold": 0,
+                      "failingPeriods": {
+                        "numberOfEvaluationPeriods": 1,
+                        "minFailingPeriodsToAlert": 1
+                      }
+                    }
+                  ]
+                },
+                "actions": {
+                  "actionGroups": [
+                    "[resourceId('Microsoft.Insights/actionGroups', format('ag-{0}-{1}-pipeline', parameters('prefix'), parameters('environment')))]"
+                  ]
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Insights/actionGroups', format('ag-{0}-{1}-pipeline', parameters('prefix'), parameters('environment')))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "actionGroupId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Insights/actionGroups', format('ag-{0}-{1}-pipeline', parameters('prefix'), parameters('environment')))]"
+            },
+            "alertRuleId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Insights/scheduledQueryRules', format('alert-pipeline-{0}-failure', parameters('environment')))]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', format('rg-{0}-{1}', variables('prefix'), parameters('environment')))]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, format('rg-{0}-{1}', variables('prefix'), parameters('environment'))), 'Microsoft.Resources/deployments', 'deploy-scraper-job')]"
       ]
     }
   ],
