@@ -119,6 +119,14 @@
   }
 
   /**
+   * GET /api/profile
+   * @returns {Promise<UserProfile>}
+   */
+  async function getProfile() {
+    return _fetch(`${API_BASE}/profile`, { headers: await _authHeaders() });
+  }
+
+  /**
    * PUT /api/profile
    * @param {{ name?: string, profile_text?: string, score_threshold?: number,
    *            enabled_sources?: string[], notification_email?: string }} data
@@ -147,6 +155,7 @@
     verifyEmail,
     getSources,
     getJobs,
+    getProfile,
     updateProfile,
     health,
   };

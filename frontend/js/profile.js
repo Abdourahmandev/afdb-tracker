@@ -1,13 +1,5 @@
 /**
  * profile.js — Profile editor page logic.
- *
- * Note on GET /api/profile:
- *   The current backend exposes only PUT /api/profile (update).
- *   There is no dedicated GET endpoint for the current user's profile.
- *   We pre-fill name from the Auth token; other fields default to empty /
- *   sensible defaults, with a banner telling the user to update them.
- *   When the backend adds GET /api/profile, replace the _loadProfile stub
- *   below with a real Api.getProfile() call.
  */
 (function (global) {
   'use strict';
@@ -81,22 +73,36 @@
 
   // ── Pre-fill ──────────────────────────────────────────────────────────────────
 
-  /**
-   * Stub: pre-fills from token only. Replace with Api.getProfile() once the
-   * backend exposes GET /api/profile.
-   */
   async function prefillForm(user) {
+    let profile = null;
+    try {
+      profile = await Api.getProfile();
+    } catch (err) {
+      // Non-fatal: fall back to token data so the page still loads
+      console.warn('GET /api/profile failed, using token data:', err.message);
+    }
+
     const nameEl = document.getElementById('field-name');
-    if (nameEl && user.name) nameEl.value = user.name;
+    if (nameEl) nameEl.value = profile?.name || user.name || '';
 
-    // Default enabled sources from token (not available without GET /profile)
-    // Load checkboxes with afdb checked by default as a sensible fallback
-    await loadSourceCheckboxes(['afdb']);
+    const profileTextEl = document.getElementById('field-profile-text');
+    if (profileTextEl && profile?.profile_text) {
+      profileTextEl.value = profile.profile_text;
+      // Trigger char counter update
+      profileTextEl.dispatchEvent(new Event('input'));
+    }
 
-    // Sync slider initial display
+    const notifEl = document.getElementById('field-notification-email');
+    if (notifEl && profile?.notification_email) notifEl.value = profile.notification_email;
+
     const slider  = document.getElementById('field-threshold');
     const display = document.getElementById('threshold-display');
+    if (slider && profile?.score_threshold != null) {
+      slider.value = profile.score_threshold;
+    }
     if (slider && display) syncSlider(slider, display);
+
+    await loadSourceCheckboxes(profile?.enabled_sources || ['afdb']);
   }
 
   // ── Collect form data ─────────────────────────────────────────────────────────

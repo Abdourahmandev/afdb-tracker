@@ -240,6 +240,71 @@ class TestPipelineV2Integration:
                 mock_cosmos.get_all_active_users.assert_not_called()
 
 
+class TestEvaluationSkipGuard:
+    """
+    Non-negotiable: jobs that already have an evaluation for a user must
+    never be re-evaluated (no Gemini token spend on known jobs).
+    """
+
+    @patch("pipeline_v2.cosmos_db")
+    @patch("pipeline_v2.evaluate_job_for_user")
+    @patch("pipeline_v2.send_digest")
+    @patch("pipeline_v2.load_enabled_scrapers")
+    def test_already_evaluated_jobs_are_skipped(
+        self, mock_scrapers, mock_send_digest, mock_evaluate, mock_cosmos
+    ):
+        """evaluate_job_for_user must NOT be called for jobs already in evaluated_ids."""
+        mock_scraper = MagicMock()
+        mock_scraper.source_id = "afdb"
+        mock_scraper.scrape = MagicMock(return_value=[])
+        mock_scrapers.return_value = [mock_scraper]
+
+        # Two jobs in Cosmos DB, both already evaluated for user-a
+        mock_cosmos.get_all_active_users.return_value = [USER_A]
+        mock_cosmos.get_jobs_for_sources.return_value = [JOB_AFDB_1, JOB_AFDB_2]
+        mock_cosmos.get_evaluated_job_ids_for_user.return_value = {"VAC-001", "VAC-002"}
+        mock_cosmos.get_unemailed_evaluations_for_user.return_value = []
+        mock_cosmos.get_known_job_ids.return_value = set()
+
+        from pipeline_v2 import run_pipeline_v2
+        run_pipeline_v2()
+
+        # No Gemini calls — both jobs were already scored
+        mock_evaluate.assert_not_called()
+
+    @patch("pipeline_v2.cosmos_db")
+    @patch("pipeline_v2.evaluate_job_for_user")
+    @patch("pipeline_v2.send_digest")
+    @patch("pipeline_v2.load_enabled_scrapers")
+    def test_only_new_jobs_are_evaluated(
+        self, mock_scrapers, mock_send_digest, mock_evaluate, mock_cosmos
+    ):
+        """Only jobs NOT in evaluated_ids must be passed to evaluate_job_for_user."""
+        mock_scraper = MagicMock()
+        mock_scraper.source_id = "afdb"
+        mock_scraper.scrape = MagicMock(return_value=[])
+        mock_scrapers.return_value = [mock_scraper]
+
+        # VAC-001 already evaluated, VAC-002 is new
+        mock_cosmos.get_all_active_users.return_value = [USER_A]
+        mock_cosmos.get_jobs_for_sources.return_value = [JOB_AFDB_1, JOB_AFDB_2]
+        mock_cosmos.get_evaluated_job_ids_for_user.return_value = {"VAC-001"}
+        mock_cosmos.get_unemailed_evaluations_for_user.return_value = []
+        mock_cosmos.get_known_job_ids.return_value = set()
+        mock_evaluate.return_value = {"score": 7, "summary": "Finance role."}
+
+        from pipeline_v2 import run_pipeline_v2
+        run_pipeline_v2()
+
+        # evaluate_job_for_user called exactly once — for VAC-002 only
+        mock_evaluate.assert_called_once()
+        evaluated_job = mock_evaluate.call_args[0][0]
+        assert evaluated_job["job_id"] == "VAC-002", (
+            f"Expected VAC-002 to be evaluated, got {evaluated_job['job_id']!r}. "
+            "Already-evaluated jobs must be skipped."
+        )
+
+
 class TestCosmosDbModule:
     """Unit tests for cosmos_db helper functions (no real Cosmos calls)."""
 
