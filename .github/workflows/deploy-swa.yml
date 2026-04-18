@@ -1,0 +1,73 @@
+# .github/workflows/deploy-swa.yml
+# Deploy the AfDB-Platform frontend (vanilla JS) to Azure Static Web Apps.
+#
+# Triggers:
+#   - push to DEV branch touching frontend/**  → deploy preview/dev environment
+#   - pull_request_closed targeting DEV        → close the SWA preview environment
+#
+# Required secrets:
+#   AZURE_STATIC_WEB_APPS_API_TOKEN_DEV  — deployment token from swa-afdb-dev
+#     Obtain via: az staticwebapp secrets list --name swa-afdb-dev --query "properties.apiKey"
+#     Store in: GitHub → Settings → Secrets and variables → Actions
+#
+# Required repo variables (not secrets):
+#   none — all config is baked into the SWA app settings via Bicep
+
+name: Deploy — Static Web App
+
+on:
+  push:
+    branches:
+      - DEV
+      - main
+    paths:
+      - "frontend/**"
+
+  pull_request:
+    types:
+      - closed
+    branches:
+      - DEV
+      - main
+
+# Prevent concurrent deployments per environment
+concurrency:
+  group: swa-deploy-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  # ─── Job 1: Deploy on push ───────────────────────────────────────────────────
+  deploy:
+    name: Upload to Static Web Apps (${{ github.ref_name == 'main' && 'PROD' || 'DEV' }})
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Deploy to Azure Static Web Apps
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ github.ref_name == 'main' && secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_PROD || secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_DEV }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: "upload"
+          app_location: "frontend"
+          skip_app_build: true
+          output_location: ""
+
+  # ─── Job 2: Close preview environment on PR close ────────────────────────────
+  close_pull_request:
+    name: Close SWA Preview Environment
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+
+    steps:
+      - name: Close SWA preview environment
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ github.ref_name == 'main' && secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_PROD || secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_DEV }}
+          app_location: "frontend"
+          action: "close"

@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Account — AfDB Platform</title>
+  <link rel="stylesheet" href="css/main.css">
+  <script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@2.39.0/lib/msal-browser.min.js"
+          integrity="sha384-HtsDY8wVihpnviltxuJhKpX0ahqMUgvnzrXcW39KBNui4JooW+YJb1YxvQmNoFDZ"
+          crossorigin="anonymous"></script>
+</head>
+<body class="page-wrapper">
+
+  <!-- ── Navbar ──────────────────────────────────────────────────────────────── -->
+  <nav class="navbar">
+    <a href="index.html" class="navbar-brand">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="2" y1="12" x2="22" y2="12"/>
+        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+      </svg>
+      AfDB <span class="brand-accent">Platform</span>
+    </a>
+    <ul class="navbar-nav">
+      <li><a href="index.html">Back to Home</a></li>
+    </ul>
+  </nav>
+
+  <!-- ── Main ────────────────────────────────────────────────────────────────── -->
+  <main class="main-content">
+    <div class="container" style="max-width:560px;">
+
+      <div class="page-header" style="text-align:center;">
+        <h1>Create Your Account</h1>
+        <p>Takes 2 minutes. No credit card required.</p>
+      </div>
+
+      <!-- ── Wizard progress ──────────────────────────────────────────────────── -->
+      <div class="wizard-progress" id="wizard-progress" aria-label="Registration steps">
+        <div class="wizard-step active" id="step-dot-1">
+          <div class="step-dot">1</div>
+          <span class="step-label">Account</span>
+        </div>
+        <div class="wizard-step" id="step-dot-2">
+          <div class="step-dot">2</div>
+          <span class="step-label">Profile</span>
+        </div>
+        <div class="wizard-step" id="step-dot-3">
+          <div class="step-dot">3</div>
+          <span class="step-label">Preferences</span>
+        </div>
+      </div>
+
+      <!-- ── Success message (hidden until submit) ───────────────────────────── -->
+      <div id="success-panel" style="display:none;">
+        <div class="alert alert-success" style="flex-direction:column;align-items:flex-start;gap:8px;">
+          <strong style="font-size:1rem;">Account created!</strong>
+          <p>
+            We sent a verification email to <strong id="success-email"></strong>.
+            Click the link in the email to activate your account, then
+            <a href="index.html">sign in</a>.
+          </p>
+          <p style="font-size:0.82rem;color:var(--gray-700);">
+            Did not receive it? Check your spam folder. The link expires in 24 hours.
+          </p>
+        </div>
+      </div>
+
+      <!-- ── Form ──────────────────────────────────────────────────────────────── -->
+      <div class="card" id="wizard-card">
+        <form id="register-form" novalidate>
+
+          <!-- Global form error -->
+          <div class="alert alert-error" id="form-error" style="display:none;"></div>
+
+          <!-- ── Step 1: Account ─────────────────────────────────────────────── -->
+          <div class="wizard-panel active" id="panel-1">
+            <div class="form-group">
+              <label for="field-email">Email address <span aria-hidden="true" style="color:var(--danger)">*</span></label>
+              <input type="email" id="field-email" name="email"
+                     autocomplete="email" required placeholder="you@example.com">
+              <span class="form-error" id="err-email"></span>
+            </div>
+            <div class="form-group">
+              <label for="field-name">Full name <span aria-hidden="true" style="color:var(--danger)">*</span></label>
+              <input type="text" id="field-name" name="name"
+                     autocomplete="name" required placeholder="Jane Doe">
+              <span class="form-error" id="err-name"></span>
+            </div>
+            <div class="wizard-nav">
+              <span></span>
+              <button type="button" class="btn btn-primary" id="btn-next-1">
+                Continue &rarr;
+              </button>
+            </div>
+          </div>
+
+          <!-- ── Step 2: Career profile ──────────────────────────────────────── -->
+          <div class="wizard-panel" id="panel-2">
+            <div class="form-group">
+              <label for="field-profile-text">Career profile &amp; objectives</label>
+              <textarea id="field-profile-text" name="profile_text"
+                        placeholder="Describe your experience, skills, and the kinds of roles you are looking for. The AI uses this text to score job relevance for you. (at least 20 characters)"
+                        rows="7"></textarea>
+              <span class="form-hint" id="char-counter">0 characters</span>
+              <span class="form-error" id="err-profile"></span>
+            </div>
+            <div class="wizard-nav">
+              <button type="button" class="btn btn-secondary" id="btn-back-2">
+                &larr; Back
+              </button>
+              <button type="button" class="btn btn-primary" id="btn-next-2">
+                Continue &rarr;
+              </button>
+            </div>
+          </div>
+
+          <!-- ── Step 3: Preferences ─────────────────────────────────────────── -->
+          <div class="wizard-panel" id="panel-3">
+
+            <div class="form-group">
+              <label for="field-threshold">
+                Minimum score threshold
+                <span style="font-weight:400;color:var(--gray-500);font-size:0.82rem;">
+                  (jobs below this score won't trigger alerts)
+                </span>
+              </label>
+              <div class="slider-wrap">
+                <input type="range" id="field-threshold" name="score_threshold"
+                       min="1" max="10" value="7" step="1">
+                <span class="slider-value" id="threshold-display">7</span>
+              </div>
+              <span class="form-hint">1 = all jobs &nbsp; 10 = only near-perfect matches</span>
+            </div>
+
+            <div class="form-group">
+              <label>Job sources to monitor</label>
+              <div class="checkbox-group" id="sources-checkboxes" aria-live="polite">
+                <!-- Populated by JS from GET /api/sources -->
+                <div class="spinner" style="width:24px;height:24px;margin:8px 0;"></div>
+              </div>
+              <span class="form-error" id="err-sources"></span>
+            </div>
+
+            <div class="wizard-nav">
+              <button type="button" class="btn btn-secondary" id="btn-back-3">
+                &larr; Back
+              </button>
+              <button type="submit" class="btn btn-primary" id="btn-submit">
+                Create Account
+              </button>
+            </div>
+          </div>
+
+        </form>
+      </div><!-- /.card -->
+
+      <p style="text-align:center;font-size:0.85rem;margin-top:18px;color:var(--gray-700);">
+        Already have an account? <a href="index.html" onclick="Auth.login();return false;">Sign in</a>
+      </p>
+
+    </div>
+  </div>
+  </main>
+
+  <footer class="footer">
+    AfDB-Platform &copy; <span id="yr"></span>
+  </footer>
+
+  <script src="js/env.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/api.js"></script>
+  <script>
+  (function () {
+    'use strict';
+
+    document.getElementById('yr').textContent = new Date().getFullYear();
+
+    // ── Wizard navigation ──────────────────────────────────────────────────────
+
+    let currentStep = 1;
+    const TOTAL_STEPS = 3;
+
+    function showStep(n) {
+      for (let i = 1; i <= TOTAL_STEPS; i++) {
+        const panel = document.getElementById('panel-' + i);
+        const dot   = document.getElementById('step-dot-' + i);
+        panel.classList.toggle('active', i === n);
+        dot.classList.remove('active', 'done');
+        if (i < n)  dot.classList.add('done');
+        if (i === n) dot.classList.add('active');
+      }
+      currentStep = n;
+      clearGlobalError();
+    }
+
+    function clearGlobalError() {
+      const el = document.getElementById('form-error');
+      el.style.display = 'none';
+      el.textContent = '';
+    }
+
+    function showGlobalError(msg) {
+      const el = document.getElementById('form-error');
+      el.textContent = msg;
+      el.style.display = 'flex';
+    }
+
+    // ── Validation helpers ─────────────────────────────────────────────────────
+
+    function showFieldError(id, msg) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.textContent = msg;
+      el.classList.toggle('show', !!msg);
+    }
+
+    function validateStep1() {
+      const email = document.getElementById('field-email').value.trim();
+      const name  = document.getElementById('field-name').value.trim();
+      let ok = true;
+      showFieldError('err-email', '');
+      showFieldError('err-name', '');
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        showFieldError('err-email', 'Enter a valid email address.');
+        ok = false;
+      }
+      if (!name) {
+        showFieldError('err-name', 'Name is required.');
+        ok = false;
+      }
+      return ok;
+    }
+
+    function validateStep2() {
+      const text = document.getElementById('field-profile-text').value.trim();
+      showFieldError('err-profile', '');
+      if (text.length > 0 && text.length < 20) {
+        showFieldError('err-profile', 'Profile text must be at least 20 characters.');
+        return false;
+      }
+      return true;
+    }
+
+    // ── Step navigation ────────────────────────────────────────────────────────
+
+    document.getElementById('btn-next-1').addEventListener('click', function () {
+      if (validateStep1()) showStep(2);
+    });
+
+    document.getElementById('btn-back-2').addEventListener('click', function () { showStep(1); });
+    document.getElementById('btn-next-2').addEventListener('click', function () {
+      if (validateStep2()) showStep(3);
+    });
+
+    document.getElementById('btn-back-3').addEventListener('click', function () { showStep(2); });
+
+    // ── Profile text char counter ──────────────────────────────────────────────
+
+    document.getElementById('field-profile-text').addEventListener('input', function () {
+      const len = this.value.length;
+      const counter = document.getElementById('char-counter');
+      counter.textContent = len + ' characters';
+      counter.className   = len >= 20 || len === 0 ? 'form-hint ok' : 'form-hint warn';
+    });
+
+    // ── Threshold slider ───────────────────────────────────────────────────────
+
+    var slider  = document.getElementById('field-threshold');
+    var display = document.getElementById('threshold-display');
+
+    function syncSlider() {
+      var val = parseInt(slider.value, 10);
+      display.textContent = val;
+      var pct = ((val - 1) / 9) * 100;
+      slider.style.setProperty('--val', pct + '%');
+    }
+
+    slider.addEventListener('input', syncSlider);
+    syncSlider();
+
+    // ── Load source checkboxes from API ────────────────────────────────────────
+
+    async function loadSources() {
+      const container = document.getElementById('sources-checkboxes');
+      try {
+        const resp = await Api.getSources();
+        container.innerHTML = '';
+        resp.sources.forEach(function (src) {
+          var item = document.createElement('label');
+          item.className = 'checkbox-item';
+          var disabled = !src.enabled;
+          item.innerHTML =
+            '<input type="checkbox" name="sources" value="' + src.source_id + '"'
+            + (src.enabled_by_default ? ' checked' : '')
+            + (disabled ? ' disabled title="Not yet available"' : '')
+            + '>'
+            + '<span class="source-dot" style="background:' + (src.color || '#555') + '"></span>'
+            + src.display_name
+            + (disabled ? ' <em style="font-size:0.78rem;color:var(--gray-500)">(coming soon)</em>' : '');
+          container.appendChild(item);
+        });
+      } catch (err) {
+        container.innerHTML = '<p style="color:var(--danger);font-size:0.85rem;">Could not load sources: ' + err.message + '</p>';
+      }
+    }
+
+    loadSources();
+
+    // ── Form submit ────────────────────────────────────────────────────────────
+
+    document.getElementById('register-form').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      clearGlobalError();
+
+      const email = document.getElementById('field-email').value.trim();
+      const name  = document.getElementById('field-name').value.trim();
+      const profileText = document.getElementById('field-profile-text').value.trim();
+      const threshold   = parseInt(document.getElementById('field-threshold').value, 10);
+
+      var checkedSources = document.querySelectorAll('input[name="sources"]:checked:not(:disabled)');
+      var enabledSources = Array.from(checkedSources).map(function (cb) { return cb.value; });
+
+      if (!enabledSources.length) {
+        showFieldError('err-sources', 'Select at least one job source.');
+        return;
+      }
+      showFieldError('err-sources', '');
+
+      var btn = document.getElementById('btn-submit');
+      btn.disabled    = true;
+      btn.textContent = 'Creating account...';
+
+      try {
+        await Api.register({
+          email:           email,
+          name:            name,
+          profile_text:    profileText || 'No profile provided.',
+          score_threshold: threshold,
+          enabled_sources: enabledSources,
+        });
+
+        // Show success panel
+        document.getElementById('wizard-card').style.display = 'none';
+        document.getElementById('success-email').textContent = email;
+        document.getElementById('success-panel').style.display = 'block';
+
+      } catch (err) {
+        showGlobalError(err.message);
+        btn.disabled    = false;
+        btn.textContent = 'Create Account';
+      }
+    });
+
+  })();
+  </script>
+</body>
+</html>

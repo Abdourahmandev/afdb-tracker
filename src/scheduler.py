@@ -13,7 +13,7 @@ import time
 
 import schedule
 
-from main import run_pipeline
+from main import run as run_pipeline  # LEGACY_MODE-aware entry point
 
 logging.basicConfig(
     level=logging.INFO,

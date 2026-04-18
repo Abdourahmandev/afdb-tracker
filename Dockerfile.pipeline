@@ -1,0 +1,59 @@
+# Dockerfile.pipeline — Container image for the multi-tenant weekly pipeline job.
+# Runs src/pipeline_v2.py which scrapes AfDB (Playwright), scores jobs via Gemini,
+# and sends digest emails via Gmail. Deployed to Azure Container Apps Job on a weekly cron.
+#
+# Build:  docker build -f Dockerfile.pipeline -t pipeline-afdb .
+# Run:    docker run --env-file .env pipeline-afdb
+#
+# Required environment variables (from Azure Key Vault via managed identity at runtime):
+#   GEMINI_API_KEY, GMAIL_APP_PASSWORD, GMAIL_USER
+#   COSMOS_ENDPOINT (or COSMOS_CONNECTION_STRING for local dev)
+#   COSMOS_DATABASE (default: afdb-platform)
+
+FROM python:3.12-slim
+
+# System dependencies for Playwright Chromium
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    wget \
+    ca-certificates \
+    fonts-liberation \
+    fonts-unifont \
+    libasound2 \
+    libatk-bridge2.0-0 \
+    libatk1.0-0 \
+    libcups2 \
+    libdbus-1-3 \
+    libdrm2 \
+    libgbm1 \
+    libgtk-3-0 \
+    libnspr4 \
+    libnss3 \
+    libx11-xcb1 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxfixes3 \
+    libxkbcommon0 \
+    libxrandr2 \
+    xdg-utils \
+ && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Install Playwright's Chromium browser
+RUN playwright install chromium || true
+
+# Copy source code — pipeline, scrapers, and legacy scraper (AfDB scraper delegates to it)
+COPY src/ ./src/
+COPY scrapers/ ./scrapers/
+COPY profile.md .
+
+RUN mkdir -p /app/data
+
+ENV PYTHONPATH=/app/src
+ENV PYTHONUNBUFFERED=1
+ENV LEGACY_MODE=false
+
+ENTRYPOINT ["python", "/app/src/pipeline_v2.py"]

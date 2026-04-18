@@ -1,0 +1,86 @@
+# .github/workflows/deploy-pipeline.yml
+# Build the weekly pipeline Docker image and push to Azure Container Registry.
+# Triggers on push to main touching pipeline-relevant source files.
+#
+# Required secrets:
+#   AZURE_CREDENTIALS — service principal JSON (used for ACR login)
+#
+# Required repository variables:
+#   ACR_LOGIN_SERVER — e.g. acrafdbprod.azurecr.io
+#     Set via: gh variable set ACR_LOGIN_SERVER --body "acrafdbprod.azurecr.io"
+
+name: Deploy — Pipeline Container Image
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "src/**"
+      - "scrapers/**"
+      - "requirements.txt"
+      - "Dockerfile.pipeline"
+      - ".github/workflows/deploy-pipeline.yml"
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Image tag to push (default: latest)"
+        required: false
+        default: "latest"
+
+concurrency:
+  group: pipeline-image-build
+  cancel-in-progress: false
+
+jobs:
+  build-and-push:
+    name: Build and push pipeline image to ACR
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Log in to Azure Container Registry
+        run: |
+          az acr login --name ${{ vars.ACR_LOGIN_SERVER }}
+
+      - name: Set image tag
+        id: tag
+        run: |
+          TAG="${{ github.event.inputs.image_tag || 'latest' }}"
+          SHORT_SHA="${GITHUB_SHA::7}"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "sha_tag=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+          echo "full_image=${{ vars.ACR_LOGIN_SERVER }}/pipeline-afdb:${TAG}" >> "$GITHUB_OUTPUT"
+          echo "sha_image=${{ vars.ACR_LOGIN_SERVER }}/pipeline-afdb:${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            -f Dockerfile.pipeline \
+            -t ${{ steps.tag.outputs.full_image }} \
+            -t ${{ steps.tag.outputs.sha_image }} \
+            .
+
+      - name: Push to ACR
+        run: |
+          docker push ${{ steps.tag.outputs.full_image }}
+          docker push ${{ steps.tag.outputs.sha_image }}
+          echo "Pushed: ${{ steps.tag.outputs.full_image }}"
+          echo "Pushed: ${{ steps.tag.outputs.sha_image }}"
+
+      - name: Update Container Apps Job image
+        run: |
+          az containerapp job update \
+            --name ca-job-afdb-prod \
+            --resource-group rg-afdb-prod \
+            --image ${{ steps.tag.outputs.full_image }}
+        continue-on-error: true
+        # continue-on-error: true because the job may not exist yet on first deploy.
+        # After rg-afdb-prod Bicep deployment, this will update the running job image.
