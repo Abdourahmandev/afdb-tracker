@@ -23,6 +23,10 @@
   w.ENTRA_SCOPES = 'api://5958c7ab-9222-4621-9ac0-d094a720b1dc/jobs.read';
 
   // Direct Function App URL — SWA free tier does not proxy /api/* to external URLs.
-  // The frontend calls the Function App directly; CORS is enabled on func-afdb-dev.
-  w.API_BASE = 'https://func-afdb-dev.azurewebsites.net/api';
+  // Prod SWA (gray-ground-0b9535b0f.2.azurestaticapps.net) calls func-afdb-prod.
+  var isProd = global.location &&
+    global.location.hostname === 'gray-ground-0b9535b0f.2.azurestaticapps.net';
+  w.API_BASE = isProd
+    ? 'https://func-afdb-prod.azurewebsites.net/api'
+    : 'https://func-afdb-dev.azurewebsites.net/api';
 })(window);

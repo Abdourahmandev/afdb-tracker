@@ -33,7 +33,7 @@ resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2024-02-15-preview
     // moves to dedicated throughput (vector indexes require per-container RU/s).
     capabilities: []
     disableLocalAuth: false   // Allow connection string for local dev; set true in prod
-    publicNetworkAccess: environment == 'prod' ? 'Disabled' : 'Enabled'
+    publicNetworkAccess: 'Enabled'   // B1 plan has no VNet integration; restrict via IP rules if needed
   }
 }
 

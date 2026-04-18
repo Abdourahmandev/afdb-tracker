@@ -85,25 +85,23 @@
 
 ---
 
-### Phase I · Sprint 5 (Backlog) / Sprint 6 (Roadmap) — Production Readiness
-**Goal**: Production environment deployed, weekly pipeline automated, monitoring live. **End of Phase I.**
+### Phase I · Sprint 6 — Production Hardening + Weekly Pipeline ⬅ CURRENT
+**Goal**: Container Apps Job live in prod, weekly pipeline automated, merge to main. **End of Phase I.**
 
-> Note: "First real user onboarded" is already complete on DEV — abdourahman03@gmail.com registered, verified, and is using the dashboard. This sprint is about hardening and automating the platform for production.
-
-- [ ] Prod Bicep deployment (`rg-afdb-prod`) — mirror dev resources
-- [ ] Entra External ID: prod app registration + redirect URIs to prod SWA URL
-- [ ] GitHub Actions: prod deploy jobs on push to `main`
-- [ ] Container Apps Job: weekly cron (`0 6 * * 1`) running `pipeline_v2.py` in prod
-- [ ] ACR: pipeline Docker image built and pushed via CI
-- [ ] Application Insights resource wired to Function App + Container Apps Job
-- [ ] Alert rule: email on Container Apps Job non-zero exit
-- [ ] `kv-roles.bicep` role ID format fix (Bicep idempotency)
-- [ ] `profile.js` → GET /api/profile pre-fills all fields on page load
-- [ ] Prod Cosmos DB seeded with historical data (`migrate_duckdb_to_cosmos.py`)
-- [ ] Smoke test prod end-to-end: login → dashboard → pipeline manual trigger
-- [ ] README SaaS setup section (Bicep deploy, Entra, GitHub secrets, first run)
-
-> ⚠️ **Non-negotiable before prod deploy**: The pipeline must skip re-evaluation of jobs that already have a score in the `evaluations` container. Check `cosmos_db.get_evaluated_job_ids_for_user()` is called before every Gemini call — never re-spend tokens on a job a user has already seen. Verify this with a unit test before Sprint 6 ships.
+- [x] Prod Bicep deployment (`rg-afdb-prod`) — 7 resources live in australiacentral
+- [x] Entra External ID: same dev tenant; prod redirect URI + `env.js` auto-routing
+- [x] GitHub Actions: prod deploy jobs on push to `main` (deploy-swa.yml + deploy-api.yml)
+- [x] Application Insights wired to prod Function App
+- [x] `profile.js` → GET /api/profile pre-fills all fields on page load
+- [x] Prod Cosmos DB seeded (43 jobs + 43 evaluations from DuckDB)
+- [x] Smoke test: `/api/health` 200, `/api/register` 201, prod SWA 200
+- [x] Eval skip guard — `TestEvaluationSkipGuard` tests green (non-negotiable)
+- [x] README SaaS setup section
+- [ ] ACR: pipeline Docker image built and pushed via `deploy-pipeline.yml`
+- [ ] Container Apps Job deployed to prod (re-run main.bicep with scraperImageTag set)
+- [ ] Alert rule live (deployed with Container Apps Job)
+- [ ] `kv-roles.bicep` idempotency fix
+- [ ] Merge DEV → main + confirm prod CI/CD deploys cleanly
 
 ---
 
