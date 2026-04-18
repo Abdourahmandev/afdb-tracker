@@ -118,6 +118,10 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
           name: 'KEY_VAULT_NAME'
           value: keyVaultName
         }
+        {
+          name: 'API_BASE_URL'
+          value: 'https://func-${prefix}-${environment}.azurewebsites.net'
+        }
       ]
       cors: {
         // Only allow our Static Web App to call the API
