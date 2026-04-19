@@ -72,9 +72,16 @@
    * @returns {Promise<{ message: string, user_id: string }>}
    */
   async function register(data) {
+    // Attempt to include the Entra auth token so the backend can use the sub
+    // claim as user_id, linking the profile to the Entra identity from day one.
+    let headers = { ..._publicHeaders };
+    try {
+      const token = await Auth.getToken();
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+    } catch (_) { /* not yet authenticated — register without token */ }
     return _fetch(`${API_BASE}/register`, {
       method:  'POST',
-      headers: _publicHeaders,
+      headers,
       body:    JSON.stringify(data),
     });
   }

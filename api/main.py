@@ -29,7 +29,7 @@ from fastapi.middleware.cors import CORSMiddleware
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 import cosmos_db
-from api.auth import get_current_user
+from api.auth import get_current_user, get_optional_user
 from api.models import (
     JobItem,
     JobsResponse,
@@ -132,9 +132,12 @@ def _load_sources() -> dict:
 # ── Routes ────────────────────────────────────────────────────────────────────
 
 @app.post("/api/register", response_model=RegisterResponse, status_code=201)
-async def register(body: RegisterRequest):
+async def register(body: RegisterRequest, claims: dict | None = Depends(get_optional_user)):
     """
     Create a new user account.
+    If an Entra External ID Bearer token is present, the token's sub claim is
+    used as the user_id so that subsequent authenticated requests (which also
+    resolve the user by sub) find the correct profile.
     Sends a verification email — user cannot log in until verified.
     """
     existing = cosmos_db.get_user_by_email(body.email)
@@ -144,7 +147,10 @@ async def register(body: RegisterRequest):
             detail="An account with this email already exists.",
         )
 
-    user_id = f"user-{secrets.token_hex(8)}"
+    # Use Entra sub as user_id when authenticated so profile lookups by sub work.
+    user_id = (claims.get("sub") or claims.get("id")) if claims else None
+    if not user_id:
+        user_id = f"user-{secrets.token_hex(8)}"
     verification_token = secrets.token_urlsafe(32)
 
     user_doc = {
