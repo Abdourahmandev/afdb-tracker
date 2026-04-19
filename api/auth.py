@@ -77,6 +77,24 @@ def _validate_token(token: str) -> dict:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=f"Invalid token: {e}")
 
 
+async def get_optional_user(
+    credentials: HTTPAuthorizationCredentials | None = Depends(_bearer),
+) -> dict | None:
+    """Like get_current_user but returns None instead of 401 when no token is present.
+    Used by the register endpoint so unauthenticated callers still work."""
+    if SKIP_AUTH:
+        user_id = os.environ.get("DEV_USER_ID", "dev-user-001")
+        return {
+            "sub": user_id,
+            "id":  user_id,
+            "email": os.environ.get("DEV_USER_EMAIL", "dev@localhost"),
+            "name": "Dev User",
+        }
+    if not credentials:
+        return None
+    return _validate_token(credentials.credentials)
+
+
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(_bearer),
 ) -> dict:
