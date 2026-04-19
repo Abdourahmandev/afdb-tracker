@@ -148,6 +148,7 @@ module cosmosRoles 'modules/cosmos-roles.bicep' = {
   params: {
     cosmosAccountName: cosmosDb.outputs.accountName
     functionsPrincipalId: functions.outputs.principalId
+    scraperPrincipalId: scraperJob.?outputs.principalId ?? ''
   }
 }
 
