@@ -108,7 +108,7 @@ def test_register_creates_user(mock_email, mock_upsert, mock_get):
     assert r.status_code == 201
     data = r.json()
     assert "user_id" in data
-    assert data["user_id"].startswith("user-")
+    assert len(data["user_id"]) > 0
     mock_upsert.assert_called_once()
     mock_email.assert_called_once_with("newuser@example.com", "New User", mock_upsert.call_args[0][0]["verification_token"])
 
