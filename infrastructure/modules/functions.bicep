@@ -124,9 +124,14 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
         }
       ]
       cors: {
-        // Only allow our Static Web App to call the API
+        // Allow both the generic SWA name and the actual Azure-assigned hostname.
+        // The actual hostname (e.g. gray-ground-*.azurestaticapps.net) is assigned
+        // by Azure at SWA creation time and cannot be predicted in Bicep, so we
+        // use a wildcard pattern via the FastAPI CORSMiddleware (allow_origin_regex)
+        // and also allow all *.azurestaticapps.net here at the platform level.
         allowedOrigins: [
           'https://swa-afdb-${environment}.azurestaticapps.net'
+          'https://*.azurestaticapps.net'
         ]
         supportCredentials: true
       }
