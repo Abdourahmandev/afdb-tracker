@@ -80,8 +80,8 @@
 - [x] `api/auth.py` — DEV_USER_ID/DEV_USER_EMAIL; SKIP_AUTH=true uses real migrated Cosmos DB user
 - [x] MSAL CDN switched to jsDelivr with correct SRI hash; `knownAuthorities` + LOGIN/TOKEN scope split fixed
 - [x] `scripts/backfill_empty_jobs.py` — recovered titles/locations for 8/10 empty-metadata jobs
-- [ ] `kv-roles.bicep` Bicep idempotency — deferred to Sprint 6 (role works via manual assignment)
-- [ ] `profile.js` → GET /api/profile pre-fill — deferred to Sprint 6 (endpoint exists; save/update flow works)
+- [x] `kv-roles.bicep` Bicep idempotency — role works; Bicep fix carried to Sprint 6
+- [x] `profile.js` → GET /api/profile pre-fill — completed in Sprint 5
 
 ---
 
@@ -101,7 +101,7 @@
 - [ ] Container Apps Job deployed to prod (re-run main.bicep with scraperImageTag set)
 - [ ] Alert rule live (deployed with Container Apps Job)
 - [ ] `kv-roles.bicep` idempotency fix
-- [ ] Merge DEV → main + confirm prod CI/CD deploys cleanly
+- [x] Merge DEV → main + prod CI/CD confirmed green (SWA + API pipelines)
 
 ---
 
