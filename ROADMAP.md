@@ -97,11 +97,11 @@
 - [x] Smoke test: `/api/health` 200, `/api/register` 201, prod SWA 200
 - [x] Eval skip guard — `TestEvaluationSkipGuard` tests green (non-negotiable)
 - [x] README SaaS setup section
-- [ ] ACR: pipeline Docker image built and pushed via `deploy-pipeline.yml`
-- [ ] Container Apps Job deployed to prod (re-run main.bicep with scraperImageTag set)
-- [ ] Alert rule live (deployed with Container Apps Job)
-- [ ] `kv-roles.bicep` idempotency fix
-- [x] Merge DEV → main + prod CI/CD confirmed green (SWA + API pipelines)
+- [x] ACR: pipeline Docker image built and pushed via `deploy-pipeline.yml`
+- [x] Container Apps Job deployed to prod (`ca-job-afdb-prod`, australiaeast, weekly cron Mon 06:00 UTC)
+- [x] Alert rule live (`alert-pipeline-prod-failure`, AzureActivity-based)
+- [x] `kv-roles.bicep` idempotency — manual assignment removed; Bicep now owns role with deterministic GUID
+- [x] Merge DEV → main + prod CI/CD confirmed green (SWA + API + pipeline pipelines)
 
 ---
 
