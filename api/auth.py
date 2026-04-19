@@ -26,21 +26,19 @@ SKIP_AUTH: bool = os.environ.get("SKIP_AUTH", "false").lower() == "true"
 
 
 @lru_cache(maxsize=1)
-def _get_jwks(jwks_uri: str) -> dict:
-    """Fetch and cache the JWKS from Entra External ID tenant."""
-    resp = requests.get(jwks_uri, timeout=10)
+def _get_oidc_config(tenant_id: str) -> dict:
+    """Fetch and cache the OIDC discovery document for the CIAM tenant.
+
+    Uses the onmicrosoft.com path which works for both domain-name and UUID
+    tenant IDs and returns the canonical issuer + jwks_uri values.
+    """
+    url = (
+        f"https://{tenant_id}.ciamlogin.com/{tenant_id}"
+        f".onmicrosoft.com/v2.0/.well-known/openid-configuration"
+    )
+    resp = requests.get(url, timeout=10)
     resp.raise_for_status()
     return resp.json()
-
-
-def _get_jwks_uri() -> str:
-    tenant_id = os.environ.get("ENTRA_EXTERNAL_TENANT_ID", "")
-    if not tenant_id:
-        raise RuntimeError("ENTRA_EXTERNAL_TENANT_ID is not set.")
-    return (
-        f"https://{tenant_id}.ciamlogin.com/{tenant_id}"
-        f".onmicrosoft.com/discovery/v2.0/keys"
-    )
 
 
 def _validate_token(token: str) -> dict:
@@ -54,8 +52,11 @@ def _validate_token(token: str) -> dict:
             detail="Auth not configured. Set ENTRA_EXTERNAL_TENANT_ID and ENTRA_CLIENT_ID.",
         )
 
-    jwks_uri = _get_jwks_uri()
-    jwks = _get_jwks(jwks_uri)
+    # Derive issuer and jwks_uri from the discovery document so we never
+    # hand-construct URLs that break when the tenant uses a domain name vs UUID.
+    oidc = _get_oidc_config(tenant_id)
+    jwks_uri = oidc["jwks_uri"]
+    issuer   = oidc["issuer"]
 
     try:
         header = jwt.get_unverified_header(token)
@@ -66,7 +67,7 @@ def _validate_token(token: str) -> dict:
             key.key,
             algorithms=[header.get("alg", "RS256")],
             audience=client_id,
-            issuer=f"https://{tenant_id}.ciamlogin.com/{tenant_id}/v2.0",
+            issuer=issuer,
         )
         return claims
 
