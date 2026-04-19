@@ -24,8 +24,8 @@
 
   // Direct Function App URL — SWA free tier does not proxy /api/* to external URLs.
   // Prod SWA (gray-ground-0b9535b0f.2.azurestaticapps.net) calls func-afdb-prod.
-  var isProd = global.location &&
-    global.location.hostname === 'gray-ground-0b9535b0f.2.azurestaticapps.net';
+  var isProd = w.location &&
+    w.location.hostname === 'gray-ground-0b9535b0f.2.azurestaticapps.net';
   w.API_BASE = isProd
     ? 'https://func-afdb-prod.azurewebsites.net/api'
     : 'https://func-afdb-dev.azurewebsites.net/api';
