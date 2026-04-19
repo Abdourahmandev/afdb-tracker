@@ -48,7 +48,11 @@ jobs:
 
       - name: Log in to Azure Container Registry
         run: |
-          az acr login --name ${{ vars.ACR_LOGIN_SERVER }}
+          # ACR_LOGIN_SERVER is the full login server (e.g. afdbtrackercr.azurecr.io)
+          # az acr login --name accepts either form
+          ACR_NAME="${{ vars.ACR_LOGIN_SERVER }}"
+          ACR_NAME="${ACR_NAME/.azurecr.io/}"
+          az acr login --name "$ACR_NAME"
 
       - name: Set image tag
         id: tag
