@@ -75,7 +75,8 @@
   // ── Render ───────────────────────────────────────────────────────────────────
 
   function renderJobs(jobs) {
-    if (!jobs.length) {
+    // Guard: jobs may be undefined/null if the API returned an unexpected shape
+    if (!Array.isArray(jobs) || !jobs.length) {
       elGrid.innerHTML  = '';
       elEmpty.style.display = 'block';
       return;
@@ -172,8 +173,11 @@
         limit:     state.limit,
       });
 
-      state.total = resp.total;
-      renderJobs(resp.jobs);
+      // Guard: extract jobs array and total with safe fallbacks in case the
+      // API response shape is unexpected (e.g. error body, proxy response).
+      const jobs = Array.isArray(resp.jobs) ? resp.jobs : [];
+      state.total = (typeof resp.total === 'number') ? resp.total : jobs.length;
+      renderJobs(jobs);
       updatePagination();
     } catch (err) {
       elGrid.innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
@@ -187,11 +191,13 @@
   async function loadSources() {
     try {
       const resp = await Api.getSources();
-      state.sources = resp.sources;
+      // Guard: sources may be missing if API returns an unexpected shape
+      const sources = Array.isArray(resp.sources) ? resp.sources : [];
+      state.sources = sources;
 
       // Build filter dropdown
       elSourceFilter.innerHTML = '<option value="">All sources</option>';
-      resp.sources.forEach(src => {
+      sources.forEach(src => {
         const opt = document.createElement('option');
         opt.value       = src.source_id;
         opt.textContent = src.display_name.replace(/\s*\(.*?\)\s*/g, '').trim();
