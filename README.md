@@ -1,8 +1,12 @@
-# AfDB Job Tracker
+# AfDB-Platform
 
-Automatically scrapes data-related jobs from the African Development Bank careers portal weekly, scores each new posting against your profile using Google Gemini AI, sends you an email alert for high-scoring matches, and publishes a **live HTML dashboard** to Azure Blob Storage.
+A multi-tenant SaaS platform that automatically scrapes jobs from international organizations (AfDB, World Bank, UNDP, IMF), scores each posting against your career profile using Google Gemini AI, and delivers personalized weekly alerts via email and a live web dashboard.
 
-**Live dashboard:** https://afdbtracker4990.z13.web.core.windows.net/
+**Live platform (prod):** https://gray-ground-0b9535b0f.2.azurestaticapps.net
+**Legacy single-user dashboard:** https://afdbtracker4990.z13.web.core.windows.net/
+
+> **Phase I — Complete.** The platform is live in production: weekly pipeline runs automatically, Entra External ID login is working, and real users can register, receive scored job alerts, and browse their personalized dashboard.
+> **Phase II — In progress.** Full UI redesign (Sprint 7) — see [Phase II Roadmap](#phase-ii--sprint-7--ui-redesign) below.
 
 ---
 
@@ -400,3 +404,56 @@ Key URLs needed in `frontend/js/env.js`:
 | Function App | `func-afdb-dev` | `func-afdb-prod` | included in B1 |
 | Static Web App | `swa-afdb-dev` | `swa-afdb-prod` | free |
 | Container Registry | `acrafdbdev` | `acrafdbprod` | ~$5/mo (when used) |
+
+---
+
+## Phase II · Sprint 7 — UI Redesign
+
+> **Goal:** Replace the functional Phase I frontend with a polished, professional product that converts real users and can be shown to investors.
+> The backend, API, pipeline, and auth are untouched — this is a pure frontend sprint.
+
+### Why this matters
+
+Phase I proved the platform works end-to-end. Phase II makes it a product people are proud to use and willing to recommend.
+
+The current UI is a developer's test page. A professional landing on it today — referred by a colleague or finding it on LinkedIn — would not trust it with their job search or their email address. Sprint 7 fixes that.
+
+### What changes for users
+
+| Feature | What it delivers |
+|---|---|
+| **New landing page** | Clear value proposition, feature highlights, social proof, single CTA. A visitor understands the product in 5 seconds and signs up. |
+| **Animated job cards** | Source branding badge (AfDB, World Bank…), visual match score ring (e.g. "91% match"), hover states. The difference between a spreadsheet and a product. |
+| **Dashboard redesign** | Split-pane layout, advanced filters sidebar (source, score threshold, category), saved searches. Browse 50 scored jobs without scrolling a flat list. |
+| **Profile editor redesign** | Rich text career profile field, drag-and-drop source ordering, live score preview. The platform visibly learns the user. |
+| **Mobile-first responsive layout** | Dashboard fully usable on a 375px phone screen. Professionals check job alerts on the go, not at a desk. |
+| **Dark mode** | System preference detection + manual toggle. Table stakes for any modern SaaS. |
+| **Loading skeletons + micro-animations** | Skeleton cards appear instantly while the API responds. Smooth transitions signal a maintained, polished product. |
+| **Onboarding redesign** | Step progress indicator, inline validation, tooltips on score threshold. Drop-off between registration step 1 and step 3 goes down. |
+| **Accessibility (WCAG 2.1 AA)** | Screen reader support, keyboard navigation, sufficient color contrast throughout. |
+
+### What stays the same
+
+- All API endpoints (`/api/jobs`, `/api/profile`, `/api/register`, `/api/sources`) — backend untouched
+- MSAL authentication (Entra External ID) — same tokens, same flow
+- Deployment: same SWA + GitHub Actions CI/CD pipeline
+- Weekly Container Apps Job pipeline — unaffected
+
+### Sprint 7 checklist
+
+- [ ] Design system: typography scale, color palette, spacing tokens, component library
+- [ ] New landing page — hero section, feature highlights, social proof, CTA
+- [ ] Animated job cards with source branding and match score ring indicator
+- [ ] Dashboard redesign: split-pane layout, advanced filters sidebar, saved searches
+- [ ] Profile editor redesign: rich text career profile, drag-and-drop source ordering
+- [ ] Responsive mobile-first layout (dashboard usable on phone)
+- [ ] Dark mode support
+- [ ] Micro-animations and loading skeletons
+- [ ] Onboarding flow redesign: step progress indicator, inline validation, tooltips
+- [ ] Accessibility audit: WCAG 2.1 AA compliance
+
+### After Sprint 7
+
+- **Sprint 8:** World Bank scraper — doubles the job feed for every registered user
+- **Sprint 9+:** UNDP, IMF, ADB scrapers; multi-source deduplication
+- **Sprint 10+:** Profile-tag matching engine — replaces per-user Gemini scoring at scale (critical above ~50 users)
