@@ -38,8 +38,21 @@ param entraClientId string = ''
 @description('Region for Azure Static Web Apps (must be one of: westus2, centralus, eastus2, westeurope, eastasia)')
 param swaLocation string = 'eastus2'
 
+@description('Region for Container Apps (australiacentral not supported; use australiaeast)')
+param containerAppsLocation string = 'australiaeast'
+
 @description('Container image tag for the pipeline job (e.g. acrafdbprod.azurecr.io/pipeline-afdb:latest). Required when environment=prod.')
 param scraperImageTag string = ''
+
+@description('ACR login server for image pull (e.g. afdbtrackercr.azurecr.io).')
+param acrLoginServer string = ''
+
+@description('ACR admin username for image pull.')
+param acrAdminUsername string = ''
+
+@description('ACR admin password for image pull.')
+@secure()
+param acrAdminPassword string = ''
 
 @description('Email address for pipeline failure alerts. Required when environment=prod.')
 param alertEmail string = 'abdourahman03@gmail.com'
@@ -160,13 +173,16 @@ module scraperJob 'modules/containerapp-job.bicep' = if (environment == 'prod' &
   params: {
     prefix: prefix
     environment: environment
-    location: location
+    location: containerAppsLocation   // australiacentral not supported for Container Apps
     tags: tags
     scraperImageTag: scraperImageTag
     cosmosDbEndpoint: cosmosDb.outputs.endpoint
     cosmosDbDatabaseName: cosmosDb.outputs.databaseName
     storageAccountName: 'st${prefix}${environment}'
     keyVaultName: keyVault.outputs.keyVaultName
+    acrLoginServer: acrLoginServer
+    acrAdminUsername: acrAdminUsername
+    acrAdminPassword: acrAdminPassword
   }
 }
 
@@ -176,11 +192,10 @@ module pipelineAlert 'modules/alertrule.bicep' = if (environment == 'prod' && !e
   params: {
     prefix: prefix
     environment: environment
-    location: location
+    location: containerAppsLocation   // co-locate alert with Container Apps
     tags: tags
     alertEmail: alertEmail
     logAnalyticsWorkspaceId: scraperJob.?outputs.logAnalyticsWorkspaceId ?? ''
-    containerAppJobName: scraperJob.?outputs.jobName ?? ''
   }
 }
 

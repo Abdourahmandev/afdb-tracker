@@ -12,6 +12,13 @@ param cosmosDbEndpoint string
 param cosmosDbDatabaseName string
 param storageAccountName string
 param keyVaultName string
+@description('ACR login server (e.g. afdbtrackercr.azurecr.io)')
+param acrLoginServer string
+@description('ACR admin username')
+param acrAdminUsername string
+@description('ACR admin password — stored as Container Apps secret, not in KV')
+@secure()
+param acrAdminPassword string
 
 var appEnvName = 'cae-${prefix}-${environment}'
 var jobName = 'ca-job-${prefix}-${environment}'
@@ -69,8 +76,8 @@ resource scraperJob 'Microsoft.App/jobs@2024-03-01' = {
         parallelism: 1
         replicaCompletionCount: 1
       }
-      // Secrets pulled from Key Vault via managed identity.
-      // The KV Secrets User role for this identity is assigned in main.bicep.
+      // Secrets: KV references for runtime secrets + ACR admin password for image pull.
+      // KV Secrets User role for this identity is assigned in main.bicep.
       secrets: [
         {
           name: 'gemini-api-key'
@@ -81,6 +88,17 @@ resource scraperJob 'Microsoft.App/jobs@2024-03-01' = {
           name: 'gmail-app-password'
           keyVaultUrl: '${keyVaultUrl}/secrets/gmail-app-password'
           identity: 'system'
+        }
+        {
+          name: 'acr-admin-password'
+          value: acrAdminPassword
+        }
+      ]
+      registries: [
+        {
+          server: acrLoginServer
+          username: acrAdminUsername
+          passwordSecretRef: 'acr-admin-password'
         }
       ]
     }

@@ -8,7 +8,6 @@ param location string
 param tags object
 param alertEmail string
 param logAnalyticsWorkspaceId string
-param containerAppJobName string
 
 // ─── Action Group ────────────────────────────────────────────────────────────
 
@@ -33,7 +32,10 @@ resource actionGroup 'Microsoft.Insights/actionGroups@2023-01-01' = {
 // Evaluates every hour; alerts if the job produced any error/exception lines
 // in the last hour. Severity 2 = Warning.
 
-var failureQuery = 'ContainerAppSystemLogs_CL | where ContainerAppName_s == "${containerAppJobName}" | where Log_s contains "error" or Log_s contains "exception" or Log_s contains "failed" | where TimeGenerated > ago(1h) | count'
+// AzureActivity is always present and captures ARM-level Container Apps Job execution results.
+// ContainerApp log tables (ContainerAppSystemLogs_CL etc.) are lazily created on first run
+// and cannot be validated at deploy time. AzureActivity is reliable from day 0.
+var failureQuery = 'AzureActivity | where ResourceGroup =~ "rg-${prefix}-${environment}" | where OperationNameValue =~ "MICROSOFT.APP/JOBS/RUNS/WRITE" | where ActivityStatusValue =~ "Failure" | where TimeGenerated > ago(2h) | count'
 
 resource pipelineFailureAlert 'Microsoft.Insights/scheduledQueryRules@2022-06-15' = {
   name: 'alert-pipeline-${environment}-failure'
@@ -43,6 +45,7 @@ resource pipelineFailureAlert 'Microsoft.Insights/scheduledQueryRules@2022-06-15
     displayName: '[${environment}] Pipeline Job Failure'
     description: 'Fires when the weekly scraper job logs an error or exception'
     enabled: true
+    skipQueryValidation: true   // Log tables are created lazily on first Container Apps run
     scopes: [logAnalyticsWorkspaceId]
     evaluationFrequency: 'PT1H'
     windowSize: 'PT1H'
