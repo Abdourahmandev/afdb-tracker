@@ -215,7 +215,7 @@ async def get_jobs(
     user_id = claims.get("sub") or claims.get("id", "")
     user = cosmos_db.get_user_by_id(user_id)
     if not user:
-        email = claims.get("email", "")
+        email = claims.get("email") or claims.get("preferred_username", "")
         if email:
             user = cosmos_db.get_user_by_email(email)
 
@@ -291,7 +291,7 @@ async def update_profile(
     user_id = claims.get("sub") or claims.get("id", "")
     user = cosmos_db.get_user_by_id(user_id)
     if not user:
-        email = claims.get("email", "")
+        email = claims.get("email") or claims.get("preferred_username", "")
         if email:
             user = cosmos_db.get_user_by_email(email)
 
@@ -339,7 +339,7 @@ async def get_profile(
     user_id = claims.get("sub") or claims.get("id", "")
     user = cosmos_db.get_user_by_id(user_id)
     if not user:
-        email = claims.get("email", "")
+        email = claims.get("email") or claims.get("preferred_username", "")
         if email:
             user = cosmos_db.get_user_by_email(email)
     if not user:
