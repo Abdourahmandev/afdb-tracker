@@ -189,7 +189,8 @@ def test_get_jobs_min_score_filter(mock_evals, mock_ev_ids, mock_jobs, mock_user
     assert r.json()["total"] == 0
 
 @patch("api.main.cosmos_db.get_user_by_id", return_value=None)
-def test_get_jobs_unknown_user_returns_404(mock_user):
+@patch("api.main.cosmos_db.get_user_by_email", return_value=None)
+def test_get_jobs_unknown_user_returns_404(mock_email, mock_user):
     r = client.get("/api/jobs", headers={"Authorization": "Bearer mock"})
     assert r.status_code == 404
 
