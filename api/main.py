@@ -214,6 +214,10 @@ async def get_jobs(
     """
     user_id = claims.get("sub") or claims.get("id", "")
     user = cosmos_db.get_user_by_id(user_id)
+    if not user:
+        email = claims.get("email", "")
+        if email:
+            user = cosmos_db.get_user_by_email(email)
 
     if not user:
         raise HTTPException(
@@ -286,6 +290,10 @@ async def update_profile(
     """Update the authenticated user's profile and preferences."""
     user_id = claims.get("sub") or claims.get("id", "")
     user = cosmos_db.get_user_by_id(user_id)
+    if not user:
+        email = claims.get("email", "")
+        if email:
+            user = cosmos_db.get_user_by_email(email)
 
     if not user:
         raise HTTPException(
@@ -330,6 +338,10 @@ async def get_profile(
     """Return the authenticated user's profile."""
     user_id = claims.get("sub") or claims.get("id", "")
     user = cosmos_db.get_user_by_id(user_id)
+    if not user:
+        email = claims.get("email", "")
+        if email:
+            user = cosmos_db.get_user_by_email(email)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
